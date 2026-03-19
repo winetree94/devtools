@@ -25,6 +25,7 @@ describe("autocomplete command", () => {
     expect(result.stdout).toContain(
       "Display autocomplete installation instructions",
     );
+    expect(result.stdout).not.toContain("Configuration sync utilities");
   });
 
   it("prints bash autocomplete setup instructions", async () => {

@@ -532,4 +532,23 @@ describe("CLI integration", () => {
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("command unknown not found");
   });
+
+  it("returns a non-zero exit code for removed sync commands", async () => {
+    const [topicResult, subcommandResult] = await Promise.all([
+      runCli(["sync"], {
+        reject: false,
+      }),
+      runCli(["sync", "init"], {
+        reject: false,
+      }),
+    ]);
+
+    expect(topicResult.exitCode).toBe(2);
+    expect(topicResult.stdout).toBe("");
+    expect(topicResult.stderr).toContain("command sync not found");
+
+    expect(subcommandResult.exitCode).toBe(2);
+    expect(subcommandResult.stdout).toBe("");
+    expect(subcommandResult.stderr).toContain("command sync:init not found");
+  });
 });
