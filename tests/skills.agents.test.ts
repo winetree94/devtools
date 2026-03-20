@@ -14,6 +14,7 @@ const defaultTargetDirectories = {
   codex: join(homedir(), ".agents", "skills"),
   claude: join(homedir(), ".claude", "skills"),
   opencode: join(homedir(), ".config", "opencode", "skills"),
+  copilot: join(homedir(), ".copilot", "skills"),
 } satisfies Record<SupportedSkillInstallAgent, string>;
 
 describe("supportedSkillInstallAgents", () => {
@@ -23,6 +24,7 @@ describe("supportedSkillInstallAgents", () => {
       "codex",
       "claude",
       "opencode",
+      "copilot",
     ]);
   });
 });

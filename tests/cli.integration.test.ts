@@ -36,6 +36,7 @@ const defaultTargetDirectories = {
   codex: [".agents", "skills"],
   claude: [".claude", "skills"],
   opencode: [".config", "opencode", "skills"],
+  copilot: [".copilot", "skills"],
 } satisfies Record<SupportedSkillInstallAgent, readonly string[]>;
 
 let webFixtureServer: WebFixtureServer;
@@ -98,6 +99,7 @@ describe("CLI integration", () => {
     expect(installHelpResult.stdout).toContain("codex");
     expect(installHelpResult.stdout).toContain("claude");
     expect(installHelpResult.stdout).toContain("opencode");
+    expect(installHelpResult.stdout).toContain("copilot");
     expect(uninstallHelpResult.exitCode).toBe(0);
     expect(uninstallHelpResult.stdout).toContain(
       "$ devtools uninstall skills AGENT",
@@ -106,6 +108,7 @@ describe("CLI integration", () => {
     expect(uninstallHelpResult.stdout).toContain("codex");
     expect(uninstallHelpResult.stdout).toContain("claude");
     expect(uninstallHelpResult.stdout).toContain("opencode");
+    expect(uninstallHelpResult.stdout).toContain("copilot");
 
     expect(webHelpResult.exitCode).toBe(0);
     expect(webHelpResult.stdout).toContain("$ devtools web COMMAND");
@@ -405,14 +408,14 @@ describe("CLI integration", () => {
   });
 
   it("rejects unsupported skill install agents", async () => {
-    const result = await runCli(["install", "skills", "copilot"], {
+    const result = await runCli(["install", "skills", "gemini"], {
       reject: false,
     });
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain(
-      "Expected copilot to be one of: pi, codex, claude, opencode",
+      "Expected gemini to be one of: pi, codex, claude, opencode, copilot",
     );
   });
 
