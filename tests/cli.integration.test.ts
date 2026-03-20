@@ -77,7 +77,7 @@ describe("CLI integration", () => {
     const result = await runCli(["--version"]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("devtools/0.1.0");
+    expect(result.stdout).toContain("devtools/1.0.0");
     expect(result.stderr).toBe("");
   });
 
