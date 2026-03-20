@@ -4,14 +4,15 @@ This document explains how to use each `devtools web` command from an agent work
 
 ## General guidance
 
-- Prefer `--json` when the output will be parsed by another tool or reused in a later step.
+- Prefer `--json` when one command result will feed another step.
+- Prefer `--batch-output jsonl` for multi-URL stdin workflows.
 - Increase `--timeout <ms>` for slower sites or long-running requests.
 - Prefer official docs with `docs-search` when answering implementation questions.
 - For multi-step research, start narrow:
   1. `docs-search` or `search`
   2. `inspect`
-  3. `fetch`
-  4. `links` or `sitemap`
+  3. `fetch` or `docs-fetch`
+  4. `links`, `sitemap`, or `crawl`
 
 ---
 
@@ -103,6 +104,12 @@ devtools web inspect <url>
 - `description`
 - `robots`
 
+### Batch input
+
+- accepts one URL argument or URL lists from stdin
+- `--json` is single-URL only
+- use `--batch-output jsonl` instead of `--json` for multi-URL runs
+
 ### Examples
 
 ```bash
@@ -133,12 +140,56 @@ devtools web fetch <url>
 - `html` - readable extracted HTML, not raw source
 - `json` - full structured result with metadata and content
 
+### Batch input
+
+- accepts one URL argument or URL lists from stdin
+- use `--stdin` to force stdin reading
+- use `--input-format text` for newline-delimited URLs
+- use `--input-format jsonl` for `{"url":"..."}` lines
+- use `--batch-output jsonl` for one result object per URL
+
 ### Examples
 
 ```bash
 devtools web fetch https://example.com/article
 devtools web fetch https://example.com/article --format markdown
 devtools web fetch https://example.com/article --format json
+printf '%s\n' https://example.com/a https://example.com/b | devtools web fetch --stdin
+```
+
+---
+
+## `devtools web docs-fetch`
+
+Fetch a documentation page and extract structured sections.
+
+```bash
+devtools web docs-fetch <url>
+```
+
+### Use when
+
+- you want docs-aware extraction instead of generic article parsing
+- you need headings, sections, code blocks, or tables
+- you want markdown or JSON from documentation pages
+
+### Output formats
+
+- `json` - structured metadata, sections, blocks, tables, and code blocks
+- `markdown` - extracted docs content as markdown
+
+### Batch input
+
+- accepts one URL argument or URL lists from stdin
+- use `--input-format jsonl` for `{"url":"..."}` lines
+- use `--batch-output jsonl` for structured multi-URL output
+
+### Examples
+
+```bash
+devtools web docs-fetch https://example.com/docs/reference
+devtools web docs-fetch https://example.com/docs/reference --format markdown
+printf '%s\n' '{"url":"https://example.com/docs/a"}' '{"url":"https://example.com/docs/b"}' | devtools web docs-fetch --stdin --input-format jsonl --batch-output jsonl
 ```
 
 ---
@@ -167,6 +218,12 @@ devtools web links <url>
 
 - `--same-origin` focuses on local site traversal
 - `--json` gives structured grouped links
+
+### Batch input
+
+- accepts one URL argument or URL lists from stdin
+- `--json` is single-URL only
+- use `--batch-output jsonl` for multi-URL structured output
 
 ### Examples
 
@@ -203,6 +260,12 @@ devtools web sitemap <url>
 - `--concurrency <number>` controls nested sitemap reads
 - `--json` is best for downstream automation
 
+### Batch input
+
+- accepts one URL argument or URL lists from stdin
+- `--json` is single-URL only
+- use `--batch-output jsonl` for multi-URL structured output
+
 ### Examples
 
 ```bash
@@ -210,3 +273,65 @@ devtools web sitemap https://example.com --same-origin --json
 devtools web sitemap https://example.com/sitemap.xml
 devtools web sitemap https://example.com --concurrency 2
 ```
+
+---
+
+## `devtools web crawl`
+
+Crawl a site from a seed URL and summarize discovered pages.
+
+```bash
+devtools web crawl <url>
+```
+
+### Use when
+
+- you want broader traversal than `links`
+- you need discovered pages with crawl depth and parent relationships
+- you want bounded crawling with depth and page limits
+
+### Useful options
+
+- `--same-origin` keeps traversal on the same origin
+- `--max-depth <number>` limits crawl depth
+- `--max-pages <number>` limits visited pages
+- `--concurrency <number>` controls parallel page requests
+- `--json` returns structured crawl results for one URL
+
+### Batch input
+
+- accepts one URL argument or URL lists from stdin
+- `--json` is single-URL only
+- use `--batch-output jsonl` for multi-URL structured output
+
+### Examples
+
+```bash
+devtools web crawl https://example.com/docs --same-origin
+devtools web crawl https://example.com/docs --max-depth 1 --max-pages 10 --json
+printf '%s\n' https://example.com/docs https://example.com/blog | devtools web crawl --stdin --batch-output jsonl
+```
+
+---
+
+## Batch URL input
+
+Use this with `fetch`, `docs-fetch`, `inspect`, `links`, `sitemap`, and `crawl`.
+
+### Text input
+
+```bash
+printf '%s\n' https://example.com/a https://example.com/b | devtools web fetch --stdin
+```
+
+### JSONL input
+
+```bash
+printf '%s\n' '{"url":"https://example.com/a"}' '{"url":"https://example.com/b"}' | devtools web docs-fetch --stdin --input-format jsonl --batch-output jsonl
+```
+
+### Notes
+
+- if stdin is piped and no URL argument is given, the command reads stdin automatically
+- text output groups each result under `==> <url>`
+- JSONL output emits one result object per input URL

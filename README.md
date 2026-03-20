@@ -1,36 +1,15 @@
 # devtools
 
-A personal CLI tool for development-agent workflows.
+When you are working with an AI coding agent or doing fast terminal-based research, the annoying part is rarely writing the prompt. It is collecting clean web context, narrowing results to the right docs, and reusing the same workflows without rebuilding them every time. `devtools` exists to make that part lighter: a small CLI for web research, content extraction, and reusable agent skill workflows.
 
-`devtools` is a small Node.js + TypeScript command-line utility that makes web content easier to consume from scripts, terminals, and agent-driven workflows. It focuses on fast, structured web utilities that are useful when an AI coding agent needs to:
-
-- search the web or restrict results to official docs
-- fetch and normalize page content
-- inspect page metadata before deciding what to read
-- extract links for lightweight traversal
-- discover URLs from sitemaps
-
-## Features
-
-- **Web search** powered by Brave Search
-- **Docs-focused search** with site-restricted queries
-- **Web page extraction** with readable article parsing
-- **Page inspection** for metadata, canonical URLs, and headers
-- **Link extraction** with same-origin filtering
-- **Sitemap discovery and parsing** with nested sitemap support
-- **Structured JSON output** across agent-oriented commands
-- **Web-research skill template** for Pi, Codex, Claude, OpenCode, and GitHub Copilot CLI
-- **Verification-before-completion skill template** for completion-time validation workflows
-- **Skill installation and uninstallation** for Pi, Codex, Claude, OpenCode, and GitHub Copilot CLI via symlinked local templates
-- **Timeouts and deterministic output** for automation-friendly behavior
-- **No build step for execution**: runs TypeScript directly with Node.js
-
-## Requirements
-
-- Node.js **24+**
-- npm
+It is built for the moments when you want to search official docs, inspect a page before reading it in full, extract content into a format an agent can actually use, or install shared skill templates into your local agent setup without extra ceremony.
 
 ## Installation
+
+Requirements:
+
+- Node.js 24+
+- npm
 
 Install dependencies:
 
@@ -44,404 +23,47 @@ Run the CLI locally:
 npm run start -- --help
 ```
 
-For development with file watching:
-
-```bash
-npm run dev
-```
-
-If you want the `devtools` command available on your machine, you can link it locally:
+If you want a global `devtools` command on your machine:
 
 ```bash
 npm link
 ```
 
-## Configuration
-
-`devtools` loads environment variables from `.env` in non-production environments.
-
-Create a `.env` file in the project root when using web search:
+To use web search, add a `.env` file in the project root:
 
 ```env
 BRAVE_SEARCH_API_KEY=your_api_key_here
 ```
 
-### Environment variables
+## What It Helps With
 
-- `BRAVE_SEARCH_API_KEY`: API key for the Brave Search engine
-- `NODE_ENV`: standard Node environment value (`development`, `test`, or `production`)
+- Search the web from the terminal, including docs-focused lookups
+- Fetch pages and turn them into cleaner text or markdown for agent use
+- Inspect page metadata, links, sitemaps, and crawl targets before going deeper
+- Install and uninstall reusable skill templates for supported coding agents
 
-## Usage
-
-```bash
-devtools <command>
-```
-
-Or without linking:
+## Example Commands
 
 ```bash
-npm run start -- <command>
-```
-
-## Skill templates
-
-The repository includes bundled skills under:
-
-- `skills/web-research/`
-- `skills/verification-before-completion/`
-
-It also includes on-demand reference documents for each skill:
-
-- `skills/web-research/SKILL.md`
-- `skills/web-research/references/commands.md`
-- `skills/web-research/references/workflows.md`
-- `skills/verification-before-completion/SKILL.md`
-- `skills/verification-before-completion/references/command-discovery.md`
-- `skills/verification-before-completion/references/completion-report-checklist.md`
-
-Install the bundled skill into a supported agent's global skills directory:
-
-```bash
-devtools install skills pi
-devtools install skills codex
-devtools install skills claude
-devtools install skills opencode
-devtools install skills copilot
-```
-
-You can override the target directory, preview the installation, or replace existing links:
-
-```bash
-devtools install skills pi --target-dir ~/.pi/agent/skills
-devtools install skills pi --dry-run
-devtools install skills pi --force
-```
-
-Remove the bundled skill from the target directory:
-
-```bash
-devtools uninstall skills pi
-devtools uninstall skills pi --dry-run
-devtools uninstall skills pi --target-dir ~/.pi/agent/skills
-devtools uninstall skills codex
-devtools uninstall skills claude
-devtools uninstall skills opencode
-devtools uninstall skills copilot
-```
-
-If `PI_CODING_AGENT_DIR` is set, `devtools install skills pi` installs into:
-
-```text
-$PI_CODING_AGENT_DIR/skills
-```
-
-Default global destinations:
-
-- `pi`: `~/.pi/agent/skills` or `$PI_CODING_AGENT_DIR/skills` when `PI_CODING_AGENT_DIR` is set
-- `codex`: `~/.agents/skills`
-- `claude`: `~/.claude/skills`
-- `opencode`: `~/.config/opencode/skills`
-- `copilot`: `~/.copilot/skills`
-
-These commands create symlinks to the local skill directories so the target agent can discover and load them on demand.
-
-## Commands
-
-### `install skills`
-
-Install bundled skill templates for a supported agent harness.
-
-```bash
-devtools install skills pi
-devtools install skills codex
-devtools install skills claude
-devtools install skills opencode
-devtools install skills copilot
-```
-
-Options:
-
-- `--target-dir <path>`: override the destination directory
-- `--dry-run`: preview changes without creating or replacing links
-- `--force`: replace existing skill targets
-
-Default destination behavior:
-
-- if `--target-dir` is set, use it
-- else for `pi`, use `$PI_CODING_AGENT_DIR/skills` when `PI_CODING_AGENT_DIR` is set
-- else for `pi`, use `~/.pi/agent/skills`
-- else for `codex`, use `~/.agents/skills`
-- else for `claude`, use `~/.claude/skills`
-- else for `opencode`, use `~/.config/opencode/skills`
-- else for `copilot`, use `~/.copilot/skills`
-
-### `uninstall skills`
-
-Uninstall bundled skill templates for a supported agent harness.
-
-```bash
-devtools uninstall skills pi
-devtools uninstall skills codex
-devtools uninstall skills claude
-devtools uninstall skills opencode
-devtools uninstall skills copilot
-```
-
-Options:
-
-- `--target-dir <path>`: override the destination directory
-- `--dry-run`: preview removals without changing files
-
-Uninstallation only removes managed bundled skill symlinks.
-If a matching target exists but does not point to the bundled skill, the command fails instead of deleting unrelated files.
-
-### `web search`
-
-Search the web with the configured search engine.
-
-```bash
-devtools web search <query>
-```
-
-Options:
-
-- `-e, --engine <engine>`: search engine to use
-- `-l, --limit <number>`: maximum number of results to return
-- `-s, --site <site>`: restrict results to a hostname or docs path
-- `-t, --timeout <ms>`: request timeout in milliseconds
-- `--json`: print results as JSON
-- `--api-key <key>`: override the configured API key
-
-Examples:
-
-```bash
-devtools web search "node.js 24 release notes"
-devtools web search "typescript erasable syntax" --limit 3
-devtools web search "fetch api" --site nodejs.org/docs --json
-```
-
-Notes:
-
-- The default engine is currently `brave`
-- Brave search requires `BRAVE_SEARCH_API_KEY` unless you pass `--api-key`
-
-### `web docs-search`
-
-Search within a specific docs site or docs path.
-
-```bash
-devtools web docs-search <site> <query>
-```
-
-Examples:
-
-```bash
+devtools web search "node.js fs watch"
 devtools web docs-search nodejs.org/docs "fs watch"
-devtools web docs-search https://vitest.dev/guide/ "mock timers" --json
-```
-
-### `web fetch`
-
-Fetch a web page, extract its readable content, and print it in a structured format.
-
-```bash
-devtools web fetch <url>
-```
-
-Options:
-
-- `-f, --format <format>`: one of `markdown`, `text`, `html`, `json`
-- `-t, --timeout <ms>`: request timeout in milliseconds
-
-Examples:
-
-```bash
-devtools web fetch https://example.com/article
-devtools web fetch https://example.com/article --format text
-devtools web fetch https://example.com/article --format json
-devtools web fetch https://example.com/article --timeout 20000
-```
-
-### `web inspect`
-
-Fetch a page and print metadata without article extraction.
-
-```bash
-devtools web inspect <url>
-```
-
-Examples:
-
-```bash
-devtools web inspect https://example.com/article
+devtools web fetch https://example.com/article --format markdown
 devtools web inspect https://example.com/article --json
+devtools install skills opencode
 ```
 
-### `web links`
+## Notes
 
-Fetch a page and extract normalized links.
-
-```bash
-devtools web links <url>
-```
-
-Options:
-
-- `--same-origin`: only include same-origin links
-- `-t, --timeout <ms>`: request timeout in milliseconds
-- `--json`: print links as JSON
-
-Examples:
-
-```bash
-devtools web links https://example.com/article --json
-devtools web links https://example.com/article --same-origin
-```
-
-### `web sitemap`
-
-Read a sitemap directly or discover sitemap URLs for a site via `robots.txt` / `/sitemap.xml`.
-
-```bash
-devtools web sitemap <url>
-```
-
-Options:
-
-- `--same-origin`: only include same-origin sitemap URLs
-- `-c, --concurrency <number>`: maximum number of sitemap requests at once
-- `-t, --timeout <ms>`: request timeout in milliseconds
-- `--json`: print results as JSON
-
-Examples:
-
-```bash
-devtools web sitemap https://example.com --json
-devtools web sitemap https://example.com/sitemap.xml
-devtools web sitemap https://example.com --same-origin --concurrency 2
-```
-
-## Example workflows
-
-Search official docs only:
-
-```bash
-devtools web docs-search nodejs.org/docs "fs watch" --json
-```
-
-Inspect a page before fetching full content:
-
-```bash
-devtools web inspect https://example.com/post --json
-```
-
-Fetch a page as markdown for summarization or ingestion:
-
-```bash
-devtools web fetch https://example.com/post --format markdown
-```
-
-Extract same-origin links to discover related docs pages:
-
-```bash
-devtools web links https://example.com/docs/start --same-origin --json
-```
-
-Discover URLs from a sitemap for later ingestion:
-
-```bash
-devtools web sitemap https://example.com --same-origin --json
-```
+- Web search uses Brave Search
+- URL-based web commands support stdin for batch workflows
+- Output stays structured and automation-friendly for scripts and agents
 
 ## Development
 
 Useful commands:
 
 ```bash
-npm run typecheck        # Type-check with tsc
-biome check .            # Lint and format validation
-npm run test             # Run tests with Vitest
-npm run check            # Run all validations (typecheck + biome + test)
-npm run check:fix        # Auto-fix formatting/lint issues
-npm run format           # Format with Biome
-npm run coverage         # Run tests with coverage
+npm run typecheck
+npx biome check .
+npm run test
 ```
-
-## Project structure
-
-```
-src/
-  index.ts               # CLI entrypoint
-  cli/
-    commands/            # Command implementations
-  config/
-    env.ts               # Environment loading and validation
-  lib/                   # Cross-domain pure utilities
-    object.ts            # Object/record manipulation
-    string.ts            # String parsing/normalization
-    validation.ts        # Common Zod schemas and validation helpers
-  services/              # Domain-specific services
-    skills/
-      agents.ts          # Agent definitions and skill paths
-      install.ts         # Skill install/uninstall logic
-    web/
-      fetch.ts           # Web page fetch and article extraction
-      http.ts            # Shared HTTP/fetch helpers
-      inspect.ts         # Page metadata inspection
-      links.ts           # Link extraction and normalization
-      page.ts            # Shared HTML page loading and DOM helpers
-      search.ts          # Web search (Brave) and docs-search
-      sitemap.ts         # Sitemap discovery and parsing
-      url.ts             # URL manipulation helpers
-skills/
-  verification-before-completion/
-    SKILL.md             # Completion-time validation skill definition
-    references/
-      command-discovery.md # Validation command discovery guide
-      completion-report-checklist.md # Completion reporting checklist
-  web-research/
-    SKILL.md             # Pi skill definition
-    references/
-      commands.md        # Command reference for agents
-      workflows.md       # Workflow reference for agents
-tests/
-  cli.test.ts            # CLI unit tests
-  cli.integration.test.ts # CLI integration tests
-  env.test.ts            # Environment validation tests
-  skills.install.test.ts # Skill install tests
-  skills.uninstall.test.ts # Skill uninstall tests
-  web.brave.test.ts      # Brave search engine tests
-  web.inspect.test.ts    # Page inspection tests
-  web.links.test.ts      # Link extraction tests
-  web.page.test.ts       # HTML page loader tests
-  web.read.test.ts       # Web fetch/read tests
-  web.search.test.ts     # Search command tests
-  web.shared.test.ts     # Shared utility tests
-  web.sitemap.test.ts    # Sitemap tests
-  helpers/
-    web-fixture-server.ts # Test fixture HTTP server
-```
-
-## Key dependencies
-
-| Package | Purpose |
-|---|---|
-| `@oclif/core` | CLI command definitions |
-| `zod` | Input validation and environment schema |
-| `jsdom` | HTML/XML DOM parsing |
-| `@mozilla/readability` | Article extraction from web pages |
-| `turndown` | HTML-to-Markdown conversion |
-| `dotenv` | `.env` file loading |
-
-## Project notes
-
-- Runtime: Node.js with direct TypeScript execution
-- Module system: ESM with `#app/*` path imports
-- Type-checking: TypeScript in strict mode (`noEmit`, `erasableSyntaxOnly`)
-- Linting/formatting: Biome
-- Testing: Vitest
-- License: MIT
-
-## Status
-
-This is a personal tool and is intentionally small in scope. The current focus is making web search and web content extraction reliable for local development-agent use.

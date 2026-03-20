@@ -55,8 +55,11 @@ const createRootHtml = (): string => {
       <body>
         <main>
           <a href="/docs">Docs</a>
+          <a href="/docs/reference">Docs reference</a>
           <a href="/article">Article</a>
           <a href="/loop">Loop</a>
+          <a href="/redirect">Redirect</a>
+          <a href="/broken">Broken</a>
           <a href="https://external.example.com/offsite">Offsite</a>
         </main>
       </body>
@@ -71,8 +74,55 @@ const createDocsHtml = (): string => {
       <body>
         <main>
           <a href="/guide">Guide</a>
+          <a href="/docs/reference">Reference</a>
           <a href="/">Home</a>
         </main>
+      </body>
+    </html>
+  `;
+};
+
+const createDocsReferenceHtml = (baseUrl: string): string => {
+  return `
+    <html lang="en">
+      <head>
+        <title>Fixture Docs Reference</title>
+        <meta name="description" content="Fixture docs description" />
+        <meta property="og:title" content="Fixture Docs OG Title" />
+        <meta property="og:site_name" content="Fixture Docs" />
+        <link rel="canonical" href="/docs/reference" />
+      </head>
+      <body>
+        <nav><a href="/">Home</a></nav>
+        <main>
+          <article>
+            <h1>API Reference</h1>
+            <p>Use <code>devtools web fetch</code> to read a page.</p>
+            <h2>Installation</h2>
+            <p>Install the CLI before running commands.</p>
+            <pre><code class="language-ts">export const answer = 42;
+</code></pre>
+            <h2>Options</h2>
+            <p>Review the available flags.</p>
+            <table>
+              <caption>CLI Options</caption>
+              <thead>
+                <tr><th>Name</th><th>Description</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>--json</code></td><td>Return JSON output</td></tr>
+                <tr><td><code>--timeout</code></td><td>Set request timeout</td></tr>
+              </tbody>
+            </table>
+            <h3>Examples</h3>
+            <ol>
+              <li>Run <code>devtools web docs-fetch</code></li>
+              <li>Inspect the returned sections</li>
+            </ol>
+            <p>See the <a href="${baseUrl}/guide">guide</a> for more.</p>
+          </article>
+        </main>
+        <footer><a href="/footer">Footer</a></footer>
       </body>
     </html>
   `;
@@ -127,11 +177,33 @@ export const startWebFixtureServer = async (): Promise<WebFixtureServer> => {
       case "/docs":
         writeResponse(response, createDocsHtml(), "text/html; charset=utf-8");
         return;
+      case "/docs/reference":
+        writeResponse(
+          response,
+          createDocsReferenceHtml(origin),
+          "text/html; charset=utf-8",
+        );
+        return;
       case "/guide":
         writeResponse(response, createGuideHtml(), "text/html; charset=utf-8");
         return;
       case "/loop":
         writeResponse(response, createLoopHtml(), "text/html; charset=utf-8");
+        return;
+      case "/redirect":
+        response.statusCode = 302;
+        response.setHeader("Location", `${origin}/article`);
+        response.end();
+        return;
+      case "/broken":
+        writeResponse(response, "broken", "text/plain; charset=utf-8", 404);
+        return;
+      case "/data.json":
+        writeResponse(
+          response,
+          JSON.stringify({ ok: true }),
+          "application/json; charset=utf-8",
+        );
         return;
       case "/robots.txt":
         writeResponse(
@@ -141,6 +213,7 @@ export const startWebFixtureServer = async (): Promise<WebFixtureServer> => {
             "Allow: /",
             "Disallow: /private",
             `Sitemap: ${origin}/sitemap.xml`,
+            `Sitemap: ${origin}/sitemap-docs.xml`,
             "",
             "User-agent: devtools",
             "Allow: /",
@@ -153,6 +226,13 @@ export const startWebFixtureServer = async (): Promise<WebFixtureServer> => {
         writeResponse(
           response,
           `<?xml version="1.0" encoding="UTF-8"?><urlset><url><loc>${origin}/</loc></url><url><loc>${origin}/article</loc></url><url><loc>${origin}/docs</loc></url></urlset>`,
+          "application/xml; charset=utf-8",
+        );
+        return;
+      case "/sitemap-docs.xml":
+        writeResponse(
+          response,
+          `<?xml version="1.0" encoding="UTF-8"?><urlset><url><loc>${origin}/docs/reference</loc></url><url><loc>${origin}/guide</loc></url></urlset>`,
           "application/xml; charset=utf-8",
         );
         return;

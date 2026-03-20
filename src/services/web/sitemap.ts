@@ -1,6 +1,7 @@
 import { JSDOM } from "jsdom";
 import { z } from "zod";
 
+import { mapConcurrent } from "#app/lib/async.ts";
 import { ensureTrailingNewline } from "#app/lib/string.ts";
 import { formatInputIssues } from "#app/lib/validation.ts";
 import {
@@ -309,37 +310,6 @@ const readSitemapDocument = async (
   };
 };
 
-const readConcurrent = async <T>(
-  items: readonly string[],
-  concurrency: number,
-  read: (item: string) => Promise<T>,
-) => {
-  const results: T[] = [];
-  let nextIndex = 0;
-
-  const runWorker = async () => {
-    while (nextIndex < items.length) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      const item = items[currentIndex];
-
-      if (item === undefined) {
-        return;
-      }
-
-      results[currentIndex] = await read(item);
-    }
-  };
-
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, () => {
-      return runWorker();
-    }),
-  );
-
-  return results;
-};
-
 export const formatWebSitemap = (sitemap: WebSitemap, json: boolean) => {
   if (json) {
     return `${JSON.stringify(sitemap, null, 2)}\n`;
@@ -413,7 +383,7 @@ export const createWebSitemapReader = (dependencies: {
           const batchSitemapUrls = [...batch].sort((left, right) => {
             return left.localeCompare(right);
           });
-          const sitemapDocuments = await readConcurrent(
+          const sitemapDocuments = await mapConcurrent(
             batchSitemapUrls,
             request.concurrency,
             async (sitemapUrl) => {
