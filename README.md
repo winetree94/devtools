@@ -19,9 +19,9 @@ A personal CLI tool for development-agent workflows.
 - **Link extraction** with same-origin filtering
 - **Sitemap discovery and parsing** with nested sitemap support
 - **Structured JSON output** across agent-oriented commands
-- **Web-research skill template** for Pi, Codex, Claude, and OpenCode
+- **Web-research skill template** for Pi, Codex, Claude, OpenCode, and GitHub Copilot CLI
 - **Verification-before-completion skill template** for completion-time validation workflows
-- **Skill installation and uninstallation** for Pi, Codex, Claude, and OpenCode via symlinked local templates
+- **Skill installation and uninstallation** for Pi, Codex, Claude, OpenCode, and GitHub Copilot CLI via symlinked local templates
 - **Timeouts and deterministic output** for automation-friendly behavior
 - **No build step for execution**: runs TypeScript directly with Node.js
 
@@ -106,6 +106,7 @@ devtools install skills pi
 devtools install skills codex
 devtools install skills claude
 devtools install skills opencode
+devtools install skills copilot
 ```
 
 You can override the target directory, preview the installation, or replace existing links:
@@ -125,6 +126,7 @@ devtools uninstall skills pi --target-dir ~/.pi/agent/skills
 devtools uninstall skills codex
 devtools uninstall skills claude
 devtools uninstall skills opencode
+devtools uninstall skills copilot
 ```
 
 If `PI_CODING_AGENT_DIR` is set, `devtools install skills pi` installs into:
@@ -139,6 +141,7 @@ Default global destinations:
 - `codex`: `~/.agents/skills`
 - `claude`: `~/.claude/skills`
 - `opencode`: `~/.config/opencode/skills`
+- `copilot`: `~/.copilot/skills`
 
 These commands create symlinks to the local skill directories so the target agent can discover and load them on demand.
 
@@ -153,6 +156,7 @@ devtools install skills pi
 devtools install skills codex
 devtools install skills claude
 devtools install skills opencode
+devtools install skills copilot
 ```
 
 Options:
@@ -169,6 +173,7 @@ Default destination behavior:
 - else for `codex`, use `~/.agents/skills`
 - else for `claude`, use `~/.claude/skills`
 - else for `opencode`, use `~/.config/opencode/skills`
+- else for `copilot`, use `~/.copilot/skills`
 
 ### `uninstall skills`
 
@@ -179,6 +184,7 @@ devtools uninstall skills pi
 devtools uninstall skills codex
 devtools uninstall skills claude
 devtools uninstall skills opencode
+devtools uninstall skills copilot
 ```
 
 Options:
