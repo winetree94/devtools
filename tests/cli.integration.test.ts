@@ -53,16 +53,22 @@ const runCli = async (
   args: readonly string[],
   options?: Readonly<{
     env?: NodeJS.ProcessEnv;
+    input?: string;
     reject?: boolean;
   }>,
 ) => {
   const execaOptions: {
     env?: NodeJS.ProcessEnv;
+    input?: string;
     reject?: boolean;
   } = {};
 
   if (options?.env !== undefined) {
     execaOptions.env = options.env;
+  }
+
+  if (options?.input !== undefined) {
+    execaOptions.input = options.input;
   }
 
   if (options?.reject !== undefined) {
@@ -77,7 +83,7 @@ describe("CLI integration", () => {
     const result = await runCli(["--version"]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("devtools/1.0.0");
+    expect(result.stdout).toContain("devtools/1.0.1");
     expect(result.stderr).toBe("");
   });
 
@@ -85,6 +91,8 @@ describe("CLI integration", () => {
     const installHelpResult = await runCli(["install", "skills", "--help"]);
     const uninstallHelpResult = await runCli(["uninstall", "skills", "--help"]);
     const webHelpResult = await runCli(["web", "--help"]);
+    const crawlHelpResult = await runCli(["web", "crawl", "--help"]);
+    const docsFetchHelpResult = await runCli(["web", "docs-fetch", "--help"]);
     const searchHelpResult = await runCli(["web", "search", "--help"]);
     const fetchHelpResult = await runCli(["web", "fetch", "--help"]);
     const inspectHelpResult = await runCli(["web", "inspect", "--help"]);
@@ -112,20 +120,28 @@ describe("CLI integration", () => {
 
     expect(webHelpResult.exitCode).toBe(0);
     expect(webHelpResult.stdout).toContain("$ devtools web COMMAND");
+    expect(webHelpResult.stdout).toContain("web crawl");
+    expect(webHelpResult.stdout).toContain("web docs-fetch");
     expect(webHelpResult.stdout).toContain("web docs-search");
     expect(webHelpResult.stdout).toContain("web inspect");
     expect(webHelpResult.stdout).toContain("web links");
     expect(webHelpResult.stdout).toContain("web sitemap");
+    expect(crawlHelpResult.exitCode).toBe(0);
+    expect(crawlHelpResult.stdout).toContain("$ devtools web crawl [URL]");
+    expect(docsFetchHelpResult.exitCode).toBe(0);
+    expect(docsFetchHelpResult.stdout).toContain(
+      "$ devtools web docs-fetch [URL]",
+    );
     expect(searchHelpResult.exitCode).toBe(0);
     expect(searchHelpResult.stdout).toContain("$ devtools web search QUERY");
     expect(fetchHelpResult.exitCode).toBe(0);
-    expect(fetchHelpResult.stdout).toContain("$ devtools web fetch URL");
+    expect(fetchHelpResult.stdout).toContain("$ devtools web fetch [URL]");
     expect(inspectHelpResult.exitCode).toBe(0);
-    expect(inspectHelpResult.stdout).toContain("$ devtools web inspect URL");
+    expect(inspectHelpResult.stdout).toContain("$ devtools web inspect [URL]");
     expect(linksHelpResult.exitCode).toBe(0);
-    expect(linksHelpResult.stdout).toContain("$ devtools web links URL");
+    expect(linksHelpResult.stdout).toContain("$ devtools web links [URL]");
     expect(sitemapHelpResult.exitCode).toBe(0);
-    expect(sitemapHelpResult.stdout).toContain("$ devtools web sitemap URL");
+    expect(sitemapHelpResult.stdout).toContain("$ devtools web sitemap [URL]");
   }, 15_000);
 
   it("installs bundled pi skills into a target directory", async () => {
@@ -507,13 +523,73 @@ describe("CLI integration", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({
       requestedUrl: `${webFixtureServer.baseUrl}/`,
       sameOriginOnly: true,
-      sitemapUrls: [`${webFixtureServer.baseUrl}/sitemap.xml`],
+      sitemapUrls: [
+        `${webFixtureServer.baseUrl}/sitemap-docs.xml`,
+        `${webFixtureServer.baseUrl}/sitemap.xml`,
+      ],
       urls: expect.arrayContaining([
         expect.objectContaining({ url: `${webFixtureServer.baseUrl}/` }),
         expect.objectContaining({ url: `${webFixtureServer.baseUrl}/article` }),
+        expect.objectContaining({
+          url: `${webFixtureServer.baseUrl}/docs/reference`,
+        }),
       ]),
     });
     expect(result.stderr).toBe("");
+  });
+
+  it("fetches a structured docs page as json", async () => {
+    const result = await runCli([
+      "web",
+      "docs-fetch",
+      `${webFixtureServer.baseUrl}/docs/reference`,
+    ]);
+
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      canonicalUrl: `${webFixtureServer.baseUrl}/docs/reference`,
+      contentRoot: {
+        selector: "main",
+        strategy: "main",
+      },
+      title: "Fixture Docs OG Title",
+    });
+    expect(result.stderr).toBe("");
+  });
+
+  it("crawls a local fixture site as json", async () => {
+    const result = await runCli([
+      "web",
+      "crawl",
+      webFixtureServer.baseUrl,
+      "--same-origin",
+      "--max-depth",
+      "2",
+      "--json",
+    ]);
+
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      requestedUrl: `${webFixtureServer.baseUrl}/`,
+      sameOriginOnly: true,
+      pages: expect.arrayContaining([
+        expect.objectContaining({ finalUrl: `${webFixtureServer.baseUrl}/` }),
+        expect.objectContaining({
+          finalUrl: `${webFixtureServer.baseUrl}/docs`,
+        }),
+      ]),
+    });
+    expect(result.stderr).toBe("");
+  });
+
+  it("rejects --json with batch inspect input", async () => {
+    const result = await runCli(["web", "inspect", "--stdin", "--json"], {
+      input: `${webFixtureServer.baseUrl}/article\n`,
+      reject: false,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Use --batch-output jsonl");
   });
 
   it("shows a validation error for an invalid fetch url", async () => {
