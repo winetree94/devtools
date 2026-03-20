@@ -1,7 +1,6 @@
 {
-  "name": "devtools",
+  "name": "@winetree94/devtools",
   "version": "0.1.0",
-  "private": true,
   "description": "A personal CLI tool for web search, page extraction, and development-agent workflows.",
   "type": "module",
   "license": "MIT",
@@ -22,6 +21,14 @@
   },
   "bin": {
     "devtools": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "skills",
+    ".env.example"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "oclif": {
     "bin": "devtools",
