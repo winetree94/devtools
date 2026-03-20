@@ -6,6 +6,7 @@ export const supportedSkillInstallAgents = [
   "codex",
   "claude",
   "opencode",
+  "copilot",
 ] as const;
 
 export type SupportedSkillInstallAgent =
@@ -30,6 +31,7 @@ const skillInstallTargetDirectoryResolvers = {
   codex: () => resolve(homedir(), ".agents", "skills"),
   claude: () => resolve(homedir(), ".claude", "skills"),
   opencode: () => resolve(homedir(), ".config", "opencode", "skills"),
+  copilot: () => resolve(homedir(), ".copilot", "skills"),
 } satisfies Record<
   SupportedSkillInstallAgent,
   (environment: NodeJS.ProcessEnv) => string
