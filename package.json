@@ -1,6 +1,6 @@
 {
   "name": "@winetree94/devtools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A personal CLI tool for web search, page extraction, and development-agent workflows.",
   "type": "module",
   "license": "MIT",
