@@ -1,10 +1,12 @@
 import { fileURLToPath } from "node:url";
 
-import { Args, Command, Flags } from "@oclif/core";
+import { buildChoiceParser, buildCommand } from "@stricli/core";
 
+import type { DevtoolsCliContext } from "#app/cli/context.ts";
 import {
   createSkillInstaller,
   runInstallSkillsCommand,
+  type SupportedSkillInstallAgent,
   supportedSkillInstallAgents,
 } from "#app/services/skills/install.ts";
 
@@ -16,48 +18,60 @@ const skillInstaller = createSkillInstaller({
   skillsDirectory: bundledSkillsDirectory,
 });
 
-export default class InstallSkills extends Command {
-  public static override summary =
-    "Install bundled skill templates for an agent harness";
+type InstallSkillsFlags = Readonly<{
+  dryRun: boolean;
+  force: boolean;
+  targetDir?: string;
+}>;
 
-  public static override args = {
-    agent: Args.string({
-      description: "Agent harness to install skills for",
-      options: [...supportedSkillInstallAgents],
-      required: true,
-    }),
-  };
-
-  public static override flags = {
-    "dry-run": Flags.boolean({
-      default: false,
-      description: "Show what would be installed without changing files",
-    }),
-    force: Flags.boolean({
-      default: false,
-      description: "Replace existing skill targets",
-    }),
-    "target-dir": Flags.string({
-      description: "Override the destination directory for installed skills",
-    }),
-  };
-
-  public override async run(): Promise<void> {
-    const { args, flags } = await this.parse(InstallSkills);
+export const installSkillsCommand = buildCommand({
+  docs: {
+    brief: "Install bundled skill templates for an agent harness",
+  },
+  func: async function (
+    this: DevtoolsCliContext,
+    flags: InstallSkillsFlags,
+    agent: SupportedSkillInstallAgent,
+  ): Promise<void> {
     const output = await runInstallSkillsCommand(
       {
-        agent: args.agent,
-        options: {
-          dryRun: flags["dry-run"],
-          force: flags.force,
-          targetDir: flags["target-dir"],
-        },
+        agent,
+        options: flags,
       },
       {
         skillInstaller,
       },
     );
 
-    process.stdout.write(output);
-  }
-}
+    this.process.stdout.write(output);
+  },
+  parameters: {
+    flags: {
+      dryRun: {
+        brief: "Show what would be installed without changing files",
+        kind: "boolean",
+      },
+      force: {
+        brief: "Replace existing skill targets",
+        kind: "boolean",
+      },
+      targetDir: {
+        brief: "Override the destination directory for installed skills",
+        kind: "parsed",
+        optional: true,
+        parse: String,
+        placeholder: "path",
+      },
+    },
+    positional: {
+      kind: "tuple",
+      parameters: [
+        {
+          brief: "Agent harness to install skills for",
+          parse: buildChoiceParser(supportedSkillInstallAgents),
+          placeholder: "agent",
+        },
+      ],
+    },
+  },
+});

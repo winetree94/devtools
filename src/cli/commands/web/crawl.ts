@@ -1,5 +1,6 @@
-import { Args, Command, Flags } from "@oclif/core";
+import { buildCommand, numberParser } from "@stricli/core";
 
+import type { DevtoolsCliContext } from "#app/cli/context.ts";
 import {
   batchInputFormats,
   batchOutputFormats,
@@ -20,63 +21,27 @@ const webCrawler = createWebCrawler({
   userAgent: "devtools/0.1.0",
 });
 
-export default class WebCrawl extends Command {
-  public static override summary =
-    "Crawl a website and summarize discovered pages";
+type WebCrawlFlags = Readonly<{
+  batchOutput: (typeof batchOutputFormats)[number];
+  concurrency: number;
+  inputFormat: (typeof batchInputFormats)[number];
+  json: boolean;
+  maxDepth: number;
+  maxPages: number;
+  sameOrigin: boolean;
+  stdin: boolean;
+  timeout: number;
+}>;
 
-  public static override args = {
-    url: Args.string({
-      description: "Seed URL",
-      required: false,
-    }),
-  };
-
-  public static override flags = {
-    json: Flags.boolean({
-      default: false,
-      description: "Print crawl results as JSON",
-    }),
-    "same-origin": Flags.boolean({
-      default: false,
-      description: "Only follow same-origin links",
-    }),
-    concurrency: Flags.integer({
-      char: "c",
-      default: Number.parseInt(defaultWebCrawlConcurrency, 10),
-      description: "Maximum number of page requests to run at once",
-    }),
-    "max-depth": Flags.integer({
-      default: Number.parseInt(defaultWebCrawlMaxDepth, 10),
-      description: "Maximum crawl depth",
-    }),
-    "max-pages": Flags.integer({
-      default: Number.parseInt(defaultWebCrawlMaxPages, 10),
-      description: "Maximum pages to visit",
-    }),
-    timeout: Flags.integer({
-      char: "t",
-      default: Number.parseInt(defaultWebRequestTimeoutMs, 10),
-      description: "Request timeout in milliseconds",
-    }),
-    stdin: Flags.boolean({
-      default: false,
-      description: "Read newline-delimited URLs from stdin",
-    }),
-    "input-format": Flags.string({
-      default: "text",
-      description: "Stdin batch input format",
-      options: [...batchInputFormats],
-    }),
-    "batch-output": Flags.string({
-      default: "text",
-      description: "Batch output format",
-      options: [...batchOutputFormats],
-    }),
-  };
-
-  public override async run(): Promise<void> {
-    const { args, flags } = await this.parse(WebCrawl);
-
+export const webCrawlCommand = buildCommand({
+  docs: {
+    brief: "Crawl a website and summarize discovered pages",
+  },
+  func: async function (
+    this: DevtoolsCliContext,
+    flags: WebCrawlFlags,
+    url?: string,
+  ): Promise<void> {
     if (flags.stdin && flags.json) {
       throw new Error(
         "--json is not supported with batch input. Use --batch-output jsonl instead.",
@@ -84,16 +49,23 @@ export default class WebCrawl extends Command {
     }
 
     const inputs = await resolveUrlCommandInputs({
-      inputFormat: flags["input-format"],
+      inputFormat: flags.inputFormat,
       missingInputMessage: "URL is required unless stdin is provided.",
-      providedUrl: args.url,
+      providedUrl: url,
       stdin: flags.stdin,
     });
 
     if (inputs.mode === "single") {
       const output = await runWebCrawlCommand(
         {
-          options: flags,
+          options: {
+            "max-depth": flags.maxDepth,
+            "max-pages": flags.maxPages,
+            "same-origin": flags.sameOrigin,
+            concurrency: flags.concurrency,
+            json: flags.json,
+            timeout: flags.timeout,
+          },
           url: inputs.url,
         },
         {
@@ -101,31 +73,25 @@ export default class WebCrawl extends Command {
         },
       );
 
-      process.stdout.write(output);
+      this.process.stdout.write(output);
       return;
     }
 
-    if (flags.json) {
-      throw new Error(
-        "--json is not supported with batch input. Use --batch-output jsonl instead.",
-      );
-    }
-
     const result = await runUrlBatchCommand({
-      batchOutput: flags["batch-output"],
+      batchOutput: flags.batchOutput,
       commandId: "web:crawl",
-      execute: async (url) => {
+      execute: async (nextUrl) => {
         return runWebCrawlCommand(
           {
             options: {
+              "max-depth": flags.maxDepth,
+              "max-pages": flags.maxPages,
+              "same-origin": flags.sameOrigin,
               concurrency: flags.concurrency,
               json: false,
-              "max-depth": flags["max-depth"],
-              "max-pages": flags["max-pages"],
-              "same-origin": flags["same-origin"],
               timeout: flags.timeout,
             },
-            url,
+            url: nextUrl,
           },
           {
             webCrawler,
@@ -136,9 +102,76 @@ export default class WebCrawl extends Command {
     });
 
     if (result.hadErrors) {
-      process.exitCode = 1;
+      this.process.exitCode = 1;
     }
 
-    process.stdout.write(result.output);
-  }
-}
+    this.process.stdout.write(result.output);
+  },
+  parameters: {
+    aliases: {
+      c: "concurrency",
+      t: "timeout",
+    },
+    flags: {
+      batchOutput: {
+        brief: "Batch output format",
+        default: "text",
+        kind: "enum",
+        values: batchOutputFormats,
+      },
+      concurrency: {
+        brief: "Maximum number of page requests to run at once",
+        default: defaultWebCrawlConcurrency,
+        kind: "parsed",
+        parse: numberParser,
+      },
+      inputFormat: {
+        brief: "Stdin batch input format",
+        default: "text",
+        kind: "enum",
+        values: batchInputFormats,
+      },
+      json: {
+        brief: "Print crawl results as JSON",
+        kind: "boolean",
+      },
+      maxDepth: {
+        brief: "Maximum crawl depth",
+        default: defaultWebCrawlMaxDepth,
+        kind: "parsed",
+        parse: numberParser,
+      },
+      maxPages: {
+        brief: "Maximum pages to visit",
+        default: defaultWebCrawlMaxPages,
+        kind: "parsed",
+        parse: numberParser,
+      },
+      sameOrigin: {
+        brief: "Only follow same-origin links",
+        kind: "boolean",
+      },
+      stdin: {
+        brief: "Read newline-delimited URLs from stdin",
+        kind: "boolean",
+      },
+      timeout: {
+        brief: "Request timeout in milliseconds",
+        default: defaultWebRequestTimeoutMs,
+        kind: "parsed",
+        parse: numberParser,
+      },
+    },
+    positional: {
+      kind: "tuple",
+      parameters: [
+        {
+          brief: "Seed URL",
+          optional: true,
+          parse: String,
+          placeholder: "url",
+        },
+      ],
+    },
+  },
+});

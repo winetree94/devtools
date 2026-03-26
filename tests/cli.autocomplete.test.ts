@@ -15,27 +15,41 @@ const runCli = async (args: readonly string[]) => {
   });
 };
 
-describe("autocomplete command", () => {
+describe("autocomplete commands", () => {
   it("appears in root help", async () => {
     const result = await runCli([]);
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain("autocomplete");
-    expect(result.stdout).toContain(
-      "Display autocomplete installation instructions",
-    );
+    expect(result.stdout).toContain("Manage shell autocomplete support");
     expect(result.stdout).not.toContain("Configuration sync utilities");
   });
 
-  it("prints bash autocomplete setup instructions", async () => {
-    const result = await runCli(["autocomplete", "bash"]);
+  it("shows help for autocomplete install and uninstall", async () => {
+    const helpResult = await runCli(["autocomplete", "--help"]);
+    const installResult = await runCli(["autocomplete", "install", "--help"]);
+    const uninstallResult = await runCli([
+      "autocomplete",
+      "uninstall",
+      "--help",
+    ]);
 
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain(
-      "Setup Instructions for DEVTOOLS CLI Autocomplete",
+    expect(helpResult.exitCode).toBe(0);
+    expect(helpResult.stderr).toBe("");
+    expect(helpResult.stdout).toContain("devtools autocomplete install");
+    expect(helpResult.stdout).toContain("devtools autocomplete uninstall");
+
+    expect(installResult.exitCode).toBe(0);
+    expect(installResult.stderr).toBe("");
+    expect(installResult.stdout).toContain(
+      "Installs bash autocomplete support for devtools",
     );
-    expect(result.stdout).toContain("devtools autocomplete script bash");
-    expect(result.stderr).toContain("Building the autocomplete cache");
+
+    expect(uninstallResult.exitCode).toBe(0);
+    expect(uninstallResult.stderr).toBe("");
+    expect(uninstallResult.stdout).toContain(
+      "Uninstalls bash autocomplete support for devtools",
+    );
   });
 });

@@ -1,5 +1,6 @@
-import { Args, Command, Flags } from "@oclif/core";
+import { buildCommand, numberParser } from "@stricli/core";
 
+import type { DevtoolsCliContext } from "#app/cli/context.ts";
 import {
   batchInputFormats,
   batchOutputFormats,
@@ -18,51 +19,27 @@ const webPageReader = createFetchWebPageReader({
   userAgent: "devtools/0.1.0",
 });
 
-export default class WebFetch extends Command {
-  public static override summary =
-    "Fetch a web page and convert it to structured output";
+type WebFetchFlags = Readonly<{
+  batchOutput: (typeof batchOutputFormats)[number];
+  format: (typeof webPageOutputFormats)[number];
+  inputFormat: (typeof batchInputFormats)[number];
+  stdin: boolean;
+  timeout: number;
+}>;
 
-  public static override args = {
-    url: Args.string({
-      description: "Web page URL",
-      required: false,
-    }),
-  };
-
-  public static override flags = {
-    format: Flags.string({
-      char: "f",
-      default: "markdown",
-      description: "Output format",
-      options: [...webPageOutputFormats],
-    }),
-    timeout: Flags.integer({
-      char: "t",
-      default: Number.parseInt(defaultWebRequestTimeoutMs, 10),
-      description: "Request timeout in milliseconds",
-    }),
-    stdin: Flags.boolean({
-      default: false,
-      description: "Read newline-delimited URLs from stdin",
-    }),
-    "input-format": Flags.string({
-      default: "text",
-      description: "Stdin batch input format",
-      options: [...batchInputFormats],
-    }),
-    "batch-output": Flags.string({
-      default: "text",
-      description: "Batch output format",
-      options: [...batchOutputFormats],
-    }),
-  };
-
-  public override async run(): Promise<void> {
-    const { args, flags } = await this.parse(WebFetch);
+export const webFetchCommand = buildCommand({
+  docs: {
+    brief: "Fetch a web page and convert it to structured output",
+  },
+  func: async function (
+    this: DevtoolsCliContext,
+    flags: WebFetchFlags,
+    url?: string,
+  ): Promise<void> {
     const inputs = await resolveUrlCommandInputs({
-      inputFormat: flags["input-format"],
+      inputFormat: flags.inputFormat,
       missingInputMessage: "URL is required unless stdin is provided.",
-      providedUrl: args.url,
+      providedUrl: url,
       stdin: flags.stdin,
     });
 
@@ -77,18 +54,18 @@ export default class WebFetch extends Command {
         },
       );
 
-      process.stdout.write(output);
+      this.process.stdout.write(output);
       return;
     }
 
     const result = await runUrlBatchCommand({
-      batchOutput: flags["batch-output"],
+      batchOutput: flags.batchOutput,
       commandId: "web:fetch",
-      execute: async (url) => {
+      execute: async (nextUrl) => {
         return runWebFetchCommand(
           {
             options: flags,
-            url,
+            url: nextUrl,
           },
           {
             webPageReader,
@@ -99,9 +76,56 @@ export default class WebFetch extends Command {
     });
 
     if (result.hadErrors) {
-      process.exitCode = 1;
+      this.process.exitCode = 1;
     }
 
-    process.stdout.write(result.output);
-  }
-}
+    this.process.stdout.write(result.output);
+  },
+  parameters: {
+    aliases: {
+      f: "format",
+      t: "timeout",
+    },
+    flags: {
+      batchOutput: {
+        brief: "Batch output format",
+        default: "text",
+        kind: "enum",
+        values: batchOutputFormats,
+      },
+      format: {
+        brief: "Output format",
+        default: "markdown",
+        kind: "enum",
+        values: webPageOutputFormats,
+      },
+      inputFormat: {
+        brief: "Stdin batch input format",
+        default: "text",
+        kind: "enum",
+        values: batchInputFormats,
+      },
+      stdin: {
+        brief: "Read newline-delimited URLs from stdin",
+        kind: "boolean",
+      },
+      timeout: {
+        brief: "Request timeout in milliseconds",
+        default: defaultWebRequestTimeoutMs,
+        kind: "parsed",
+        parse: numberParser,
+      },
+    },
+    positional: {
+      kind: "tuple",
+      parameters: [
+        {
+          brief: "Web page URL",
+          optional: true,
+          parse: String,
+          placeholder: "url",
+        },
+      ],
+    },
+  },
+});

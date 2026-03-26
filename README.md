@@ -41,6 +41,7 @@ BRAVE_SEARCH_API_KEY=your_api_key_here
 - Fetch pages and turn them into cleaner text or markdown for agent use
 - Inspect page metadata, links, sitemaps, and crawl targets before going deeper
 - Install and uninstall reusable skill templates for supported coding agents
+- Install bash autocomplete for the CLI
 
 ## Example Commands
 
@@ -50,6 +51,7 @@ devtools web docs-search nodejs.org/docs "fs watch"
 devtools web fetch https://example.com/article --format markdown
 devtools web inspect https://example.com/article --json
 devtools install skills opencode
+devtools autocomplete install
 ```
 
 ## Notes

@@ -20,7 +20,8 @@
     "#app/*": "./src/*"
   },
   "bin": {
-    "devtools": "./src/index.ts"
+    "devtools": "./src/index.ts",
+    "__devtools_bash_complete": "./src/cli/bash-complete.ts"
   },
   "files": [
     "src",
@@ -29,33 +30,6 @@
   ],
   "publishConfig": {
     "access": "public"
-  },
-  "oclif": {
-    "bin": "devtools",
-    "dirname": "devtools",
-    "commands": {
-      "strategy": "explicit",
-      "target": "./src/cli/commands/index.ts",
-      "identifier": "COMMANDS"
-    },
-    "topicSeparator": " ",
-    "plugins": [
-      "@oclif/plugin-autocomplete"
-    ],
-    "topics": {
-      "install": {
-        "description": "Install packaged resources"
-      },
-      "uninstall": {
-        "description": "Uninstall packaged resources"
-      },
-      "web": {
-        "description": "Web utilities"
-      }
-    },
-    "additionalHelpFlags": [
-      "-h"
-    ]
   },
   "engines": {
     "node": ">=24"
@@ -76,8 +50,8 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
-    "@oclif/core": "^4.9.0",
-    "@oclif/plugin-autocomplete": "^3.2.41",
+    "@stricli/auto-complete": "^1.2.6",
+    "@stricli/core": "^1.2.6",
     "dotenv": "^17.3.1",
     "jsdom": "^29.0.0",
     "turndown": "^7.2.2",

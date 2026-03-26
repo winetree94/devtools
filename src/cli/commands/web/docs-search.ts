@@ -1,4 +1,6 @@
-import { Args, Command, Flags } from "@oclif/core";
+import { buildCommand, numberParser } from "@stricli/core";
+
+import type { DevtoolsCliContext } from "#app/cli/context.ts";
 import { defaultWebRequestTimeoutMs } from "#app/services/web/http.ts";
 import {
   createBraveSearchEngine,
@@ -6,8 +8,11 @@ import {
   runWebDocsSearchCommand,
 } from "#app/services/web/search.ts";
 
-const createCommandSearchEngineRegistry = (apiKeyOverride?: string) => {
-  const { BRAVE_SEARCH_API_KEY: braveSearchApiKey } = process.env;
+const createCommandSearchEngineRegistry = (
+  env: NodeJS.ProcessEnv,
+  apiKeyOverride?: string,
+) => {
+  const { BRAVE_SEARCH_API_KEY: braveSearchApiKey } = env;
 
   return createSearchEngineRegistry("brave", [
     createBraveSearchEngine({
@@ -17,61 +22,94 @@ const createCommandSearchEngineRegistry = (apiKeyOverride?: string) => {
   ]);
 };
 
-export default class WebDocsSearch extends Command {
-  public static override summary =
-    "Search documentation within a specific site or docs path";
+type WebDocsSearchFlags = Readonly<{
+  apiKey?: string;
+  engine?: string;
+  json: boolean;
+  limit: number;
+  timeout: number;
+}>;
 
-  public static override args = {
-    site: Args.string({
-      description: "Hostname or docs base path, e.g. nodejs.org/docs",
-      required: true,
-    }),
-    query: Args.string({
-      description: "Keywords to search for",
-      required: true,
-    }),
-  };
-
-  public static override flags = {
-    engine: Flags.string({
-      char: "e",
-      description: "Search engine to use",
-    }),
-    limit: Flags.integer({
-      char: "l",
-      default: 5,
-      description: "Maximum number of results to return",
-    }),
-    json: Flags.boolean({
-      default: false,
-      description: "Print results as JSON",
-    }),
-    timeout: Flags.integer({
-      char: "t",
-      default: Number.parseInt(defaultWebRequestTimeoutMs, 10),
-      description: "Request timeout in milliseconds",
-    }),
-    "api-key": Flags.string({
-      description: "Override the API key for the selected engine",
-    }),
-  };
-
-  public override async run(): Promise<void> {
-    const { args, flags } = await this.parse(WebDocsSearch);
+export const webDocsSearchCommand = buildCommand({
+  docs: {
+    brief: "Search documentation within a specific site or docs path",
+  },
+  func: async function (
+    this: DevtoolsCliContext,
+    flags: WebDocsSearchFlags,
+    site: string,
+    query: string,
+  ): Promise<void> {
     const output = await runWebDocsSearchCommand(
       {
-        site: args.site,
-        query: args.query,
-        options: {
-          ...flags,
-          apiKey: flags["api-key"],
-        },
+        options: flags,
+        query,
+        site,
       },
       {
-        createSearchEngineRegistry: createCommandSearchEngineRegistry,
+        createSearchEngineRegistry: (apiKeyOverride?: string) => {
+          return createCommandSearchEngineRegistry(
+            this.process.env,
+            apiKeyOverride,
+          );
+        },
       },
     );
 
-    process.stdout.write(output);
-  }
-}
+    this.process.stdout.write(output);
+  },
+  parameters: {
+    aliases: {
+      e: "engine",
+      l: "limit",
+      t: "timeout",
+    },
+    flags: {
+      apiKey: {
+        brief: "Override the API key for the selected engine",
+        kind: "parsed",
+        optional: true,
+        parse: String,
+        placeholder: "api-key",
+      },
+      engine: {
+        brief: "Search engine to use",
+        kind: "parsed",
+        optional: true,
+        parse: String,
+        placeholder: "engine",
+      },
+      json: {
+        brief: "Print results as JSON",
+        kind: "boolean",
+      },
+      limit: {
+        brief: "Maximum number of results to return",
+        default: "5",
+        kind: "parsed",
+        parse: numberParser,
+      },
+      timeout: {
+        brief: "Request timeout in milliseconds",
+        default: defaultWebRequestTimeoutMs,
+        kind: "parsed",
+        parse: numberParser,
+      },
+    },
+    positional: {
+      kind: "tuple",
+      parameters: [
+        {
+          brief: "Hostname or docs base path, e.g. nodejs.org/docs",
+          parse: String,
+          placeholder: "site",
+        },
+        {
+          brief: "Keywords to search for",
+          parse: String,
+          placeholder: "query",
+        },
+      ],
+    },
+  },
+});

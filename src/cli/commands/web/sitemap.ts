@@ -1,4 +1,6 @@
-import { Args, Command, Flags } from "@oclif/core";
+import { buildCommand, numberParser } from "@stricli/core";
+
+import type { DevtoolsCliContext } from "#app/cli/context.ts";
 import {
   batchInputFormats,
   batchOutputFormats,
@@ -17,55 +19,25 @@ const webSitemapReader = createWebSitemapReader({
   userAgent: "devtools/0.1.0",
 });
 
-export default class WebSitemap extends Command {
-  public static override summary =
-    "Read a sitemap.xml file or discover sitemap URLs for a site";
+type WebSitemapFlags = Readonly<{
+  batchOutput: (typeof batchOutputFormats)[number];
+  concurrency: number;
+  inputFormat: (typeof batchInputFormats)[number];
+  json: boolean;
+  sameOrigin: boolean;
+  stdin: boolean;
+  timeout: number;
+}>;
 
-  public static override args = {
-    url: Args.string({
-      description: "Site URL or sitemap XML URL",
-      required: false,
-    }),
-  };
-
-  public static override flags = {
-    json: Flags.boolean({
-      default: false,
-      description: "Print sitemap results as JSON",
-    }),
-    "same-origin": Flags.boolean({
-      default: false,
-      description: "Only include same-origin sitemap URLs",
-    }),
-    concurrency: Flags.integer({
-      char: "c",
-      default: Number.parseInt(defaultSitemapConcurrency, 10),
-      description: "Maximum number of sitemap requests to run at once",
-    }),
-    timeout: Flags.integer({
-      char: "t",
-      default: Number.parseInt(defaultWebRequestTimeoutMs, 10),
-      description: "Request timeout in milliseconds",
-    }),
-    stdin: Flags.boolean({
-      default: false,
-      description: "Read newline-delimited URLs from stdin",
-    }),
-    "input-format": Flags.string({
-      default: "text",
-      description: "Stdin batch input format",
-      options: [...batchInputFormats],
-    }),
-    "batch-output": Flags.string({
-      default: "text",
-      description: "Batch output format",
-      options: [...batchOutputFormats],
-    }),
-  };
-
-  public override async run(): Promise<void> {
-    const { args, flags } = await this.parse(WebSitemap);
-
+export const webSitemapCommand = buildCommand({
+  docs: {
+    brief: "Read a sitemap.xml file or discover sitemap URLs for a site",
+  },
+  func: async function (
+    this: DevtoolsCliContext,
+    flags: WebSitemapFlags,
+    url?: string,
+  ): Promise<void> {
     if (flags.stdin && flags.json) {
       throw new Error(
         "--json is not supported with batch input. Use --batch-output jsonl instead.",
@@ -73,21 +45,16 @@ export default class WebSitemap extends Command {
     }
 
     const inputs = await resolveUrlCommandInputs({
-      inputFormat: flags["input-format"],
+      inputFormat: flags.inputFormat,
       missingInputMessage: "URL is required unless stdin is provided.",
-      providedUrl: args.url,
+      providedUrl: url,
       stdin: flags.stdin,
     });
 
     if (inputs.mode === "single") {
       const output = await runWebSitemapCommand(
         {
-          options: {
-            concurrency: flags.concurrency,
-            json: flags.json,
-            sameOrigin: flags["same-origin"],
-            timeout: flags.timeout,
-          },
+          options: flags,
           url: inputs.url,
         },
         {
@@ -95,29 +62,23 @@ export default class WebSitemap extends Command {
         },
       );
 
-      process.stdout.write(output);
+      this.process.stdout.write(output);
       return;
     }
 
-    if (flags.json) {
-      throw new Error(
-        "--json is not supported with batch input. Use --batch-output jsonl instead.",
-      );
-    }
-
     const result = await runUrlBatchCommand({
-      batchOutput: flags["batch-output"],
+      batchOutput: flags.batchOutput,
       commandId: "web:sitemap",
-      execute: async (url) => {
+      execute: async (nextUrl) => {
         return runWebSitemapCommand(
           {
             options: {
               concurrency: flags.concurrency,
               json: false,
-              sameOrigin: flags["same-origin"],
+              sameOrigin: flags.sameOrigin,
               timeout: flags.timeout,
             },
-            url,
+            url: nextUrl,
           },
           {
             webSitemapReader,
@@ -128,9 +89,64 @@ export default class WebSitemap extends Command {
     });
 
     if (result.hadErrors) {
-      process.exitCode = 1;
+      this.process.exitCode = 1;
     }
 
-    process.stdout.write(result.output);
-  }
-}
+    this.process.stdout.write(result.output);
+  },
+  parameters: {
+    aliases: {
+      c: "concurrency",
+      t: "timeout",
+    },
+    flags: {
+      batchOutput: {
+        brief: "Batch output format",
+        default: "text",
+        kind: "enum",
+        values: batchOutputFormats,
+      },
+      concurrency: {
+        brief: "Maximum number of sitemap requests to run at once",
+        default: defaultSitemapConcurrency,
+        kind: "parsed",
+        parse: numberParser,
+      },
+      inputFormat: {
+        brief: "Stdin batch input format",
+        default: "text",
+        kind: "enum",
+        values: batchInputFormats,
+      },
+      json: {
+        brief: "Print sitemap results as JSON",
+        kind: "boolean",
+      },
+      sameOrigin: {
+        brief: "Only include same-origin sitemap URLs",
+        kind: "boolean",
+      },
+      stdin: {
+        brief: "Read newline-delimited URLs from stdin",
+        kind: "boolean",
+      },
+      timeout: {
+        brief: "Request timeout in milliseconds",
+        default: defaultWebRequestTimeoutMs,
+        kind: "parsed",
+        parse: numberParser,
+      },
+    },
+    positional: {
+      kind: "tuple",
+      parameters: [
+        {
+          brief: "Site URL or sitemap XML URL",
+          optional: true,
+          parse: String,
+          placeholder: "url",
+        },
+      ],
+    },
+  },
+});

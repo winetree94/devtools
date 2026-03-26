@@ -1,5 +1,6 @@
-import { Args, Command, Flags } from "@oclif/core";
+import { buildCommand, numberParser } from "@stricli/core";
 
+import type { DevtoolsCliContext } from "#app/cli/context.ts";
 import {
   batchInputFormats,
   batchOutputFormats,
@@ -18,51 +19,27 @@ const webDocsReader = createFetchWebDocsReader({
   userAgent: "devtools/0.1.0",
 });
 
-export default class WebDocsFetch extends Command {
-  public static override summary =
-    "Fetch a documentation page and extract structured sections";
+type WebDocsFetchFlags = Readonly<{
+  batchOutput: (typeof batchOutputFormats)[number];
+  format: (typeof webDocsOutputFormats)[number];
+  inputFormat: (typeof batchInputFormats)[number];
+  stdin: boolean;
+  timeout: number;
+}>;
 
-  public static override args = {
-    url: Args.string({
-      description: "Documentation page URL",
-      required: false,
-    }),
-  };
-
-  public static override flags = {
-    format: Flags.string({
-      char: "f",
-      default: "json",
-      description: "Output format",
-      options: [...webDocsOutputFormats],
-    }),
-    timeout: Flags.integer({
-      char: "t",
-      default: Number.parseInt(defaultWebRequestTimeoutMs, 10),
-      description: "Request timeout in milliseconds",
-    }),
-    stdin: Flags.boolean({
-      default: false,
-      description: "Read newline-delimited URLs from stdin",
-    }),
-    "input-format": Flags.string({
-      default: "text",
-      description: "Stdin batch input format",
-      options: [...batchInputFormats],
-    }),
-    "batch-output": Flags.string({
-      default: "text",
-      description: "Batch output format",
-      options: [...batchOutputFormats],
-    }),
-  };
-
-  public override async run(): Promise<void> {
-    const { args, flags } = await this.parse(WebDocsFetch);
+export const webDocsFetchCommand = buildCommand({
+  docs: {
+    brief: "Fetch a documentation page and extract structured sections",
+  },
+  func: async function (
+    this: DevtoolsCliContext,
+    flags: WebDocsFetchFlags,
+    url?: string,
+  ): Promise<void> {
     const inputs = await resolveUrlCommandInputs({
-      inputFormat: flags["input-format"],
+      inputFormat: flags.inputFormat,
       missingInputMessage: "URL is required unless stdin is provided.",
-      providedUrl: args.url,
+      providedUrl: url,
       stdin: flags.stdin,
     });
 
@@ -77,18 +54,18 @@ export default class WebDocsFetch extends Command {
         },
       );
 
-      process.stdout.write(output);
+      this.process.stdout.write(output);
       return;
     }
 
     const result = await runUrlBatchCommand({
-      batchOutput: flags["batch-output"],
+      batchOutput: flags.batchOutput,
       commandId: "web:docs-fetch",
-      execute: async (url) => {
+      execute: async (nextUrl) => {
         return runWebDocsFetchCommand(
           {
             options: flags,
-            url,
+            url: nextUrl,
           },
           {
             webDocsReader,
@@ -99,9 +76,56 @@ export default class WebDocsFetch extends Command {
     });
 
     if (result.hadErrors) {
-      process.exitCode = 1;
+      this.process.exitCode = 1;
     }
 
-    process.stdout.write(result.output);
-  }
-}
+    this.process.stdout.write(result.output);
+  },
+  parameters: {
+    aliases: {
+      f: "format",
+      t: "timeout",
+    },
+    flags: {
+      batchOutput: {
+        brief: "Batch output format",
+        default: "text",
+        kind: "enum",
+        values: batchOutputFormats,
+      },
+      format: {
+        brief: "Output format",
+        default: "json",
+        kind: "enum",
+        values: webDocsOutputFormats,
+      },
+      inputFormat: {
+        brief: "Stdin batch input format",
+        default: "text",
+        kind: "enum",
+        values: batchInputFormats,
+      },
+      stdin: {
+        brief: "Read newline-delimited URLs from stdin",
+        kind: "boolean",
+      },
+      timeout: {
+        brief: "Request timeout in milliseconds",
+        default: defaultWebRequestTimeoutMs,
+        kind: "parsed",
+        parse: numberParser,
+      },
+    },
+    positional: {
+      kind: "tuple",
+      parameters: [
+        {
+          brief: "Documentation page URL",
+          optional: true,
+          parse: String,
+          placeholder: "url",
+        },
+      ],
+    },
+  },
+});

@@ -1,4 +1,6 @@
-import { Args, Command, Flags } from "@oclif/core";
+import { buildCommand, numberParser } from "@stricli/core";
+
+import type { DevtoolsCliContext } from "#app/cli/context.ts";
 import {
   batchInputFormats,
   batchOutputFormats,
@@ -16,50 +18,24 @@ const webPageLinkReader = createWebPageLinkReader({
   userAgent: "devtools/0.1.0",
 });
 
-export default class WebLinks extends Command {
-  public static override summary =
-    "Fetch a web page and extract normalized links";
+type WebLinksFlags = Readonly<{
+  batchOutput: (typeof batchOutputFormats)[number];
+  inputFormat: (typeof batchInputFormats)[number];
+  json: boolean;
+  sameOrigin: boolean;
+  stdin: boolean;
+  timeout: number;
+}>;
 
-  public static override args = {
-    url: Args.string({
-      description: "Web page URL",
-      required: false,
-    }),
-  };
-
-  public static override flags = {
-    json: Flags.boolean({
-      default: false,
-      description: "Print links as JSON",
-    }),
-    "same-origin": Flags.boolean({
-      default: false,
-      description: "Only include same-origin links",
-    }),
-    timeout: Flags.integer({
-      char: "t",
-      default: Number.parseInt(defaultWebRequestTimeoutMs, 10),
-      description: "Request timeout in milliseconds",
-    }),
-    stdin: Flags.boolean({
-      default: false,
-      description: "Read newline-delimited URLs from stdin",
-    }),
-    "input-format": Flags.string({
-      default: "text",
-      description: "Stdin batch input format",
-      options: [...batchInputFormats],
-    }),
-    "batch-output": Flags.string({
-      default: "text",
-      description: "Batch output format",
-      options: [...batchOutputFormats],
-    }),
-  };
-
-  public override async run(): Promise<void> {
-    const { args, flags } = await this.parse(WebLinks);
-
+export const webLinksCommand = buildCommand({
+  docs: {
+    brief: "Fetch a web page and extract normalized links",
+  },
+  func: async function (
+    this: DevtoolsCliContext,
+    flags: WebLinksFlags,
+    url?: string,
+  ): Promise<void> {
     if (flags.stdin && flags.json) {
       throw new Error(
         "--json is not supported with batch input. Use --batch-output jsonl instead.",
@@ -67,20 +43,16 @@ export default class WebLinks extends Command {
     }
 
     const inputs = await resolveUrlCommandInputs({
-      inputFormat: flags["input-format"],
+      inputFormat: flags.inputFormat,
       missingInputMessage: "URL is required unless stdin is provided.",
-      providedUrl: args.url,
+      providedUrl: url,
       stdin: flags.stdin,
     });
 
     if (inputs.mode === "single") {
       const output = await runWebLinksCommand(
         {
-          options: {
-            json: flags.json,
-            sameOrigin: flags["same-origin"],
-            timeout: flags.timeout,
-          },
+          options: flags,
           url: inputs.url,
         },
         {
@@ -88,28 +60,22 @@ export default class WebLinks extends Command {
         },
       );
 
-      process.stdout.write(output);
+      this.process.stdout.write(output);
       return;
     }
 
-    if (flags.json) {
-      throw new Error(
-        "--json is not supported with batch input. Use --batch-output jsonl instead.",
-      );
-    }
-
     const result = await runUrlBatchCommand({
-      batchOutput: flags["batch-output"],
+      batchOutput: flags.batchOutput,
       commandId: "web:links",
-      execute: async (url) => {
+      execute: async (nextUrl) => {
         return runWebLinksCommand(
           {
             options: {
               json: false,
-              sameOrigin: flags["same-origin"],
+              sameOrigin: flags.sameOrigin,
               timeout: flags.timeout,
             },
-            url,
+            url: nextUrl,
           },
           {
             webPageLinkReader,
@@ -120,9 +86,57 @@ export default class WebLinks extends Command {
     });
 
     if (result.hadErrors) {
-      process.exitCode = 1;
+      this.process.exitCode = 1;
     }
 
-    process.stdout.write(result.output);
-  }
-}
+    this.process.stdout.write(result.output);
+  },
+  parameters: {
+    aliases: {
+      t: "timeout",
+    },
+    flags: {
+      batchOutput: {
+        brief: "Batch output format",
+        default: "text",
+        kind: "enum",
+        values: batchOutputFormats,
+      },
+      inputFormat: {
+        brief: "Stdin batch input format",
+        default: "text",
+        kind: "enum",
+        values: batchInputFormats,
+      },
+      json: {
+        brief: "Print links as JSON",
+        kind: "boolean",
+      },
+      sameOrigin: {
+        brief: "Only include same-origin links",
+        kind: "boolean",
+      },
+      stdin: {
+        brief: "Read newline-delimited URLs from stdin",
+        kind: "boolean",
+      },
+      timeout: {
+        brief: "Request timeout in milliseconds",
+        default: defaultWebRequestTimeoutMs,
+        kind: "parsed",
+        parse: numberParser,
+      },
+    },
+    positional: {
+      kind: "tuple",
+      parameters: [
+        {
+          brief: "Web page URL",
+          optional: true,
+          parse: String,
+          placeholder: "url",
+        },
+      ],
+    },
+  },
+});

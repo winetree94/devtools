@@ -20,17 +20,9 @@ import {
 } from "./helpers/web-fixture-server.ts";
 
 const cliPath = fileURLToPath(new URL("../src/index.ts", import.meta.url));
-const bundledSkills = {
-  "verification-before-completion": fileURLToPath(
-    new URL("../skills/verification-before-completion", import.meta.url),
-  ),
-  "web-research": fileURLToPath(
-    new URL("../skills/web-research", import.meta.url),
-  ),
-} as const;
-const bundledSkillNames = Object.keys(bundledSkills).sort((left, right) => {
-  return left.localeCompare(right);
-}) as Array<keyof typeof bundledSkills>;
+const bundledSkillsDirectory = fileURLToPath(
+  new URL("../skills", import.meta.url),
+);
 const defaultTargetDirectories = {
   pi: [".pi", "agent", "skills"],
   codex: [".agents", "skills"],
@@ -39,9 +31,26 @@ const defaultTargetDirectories = {
   copilot: [".copilot", "skills"],
 } satisfies Record<SupportedSkillInstallAgent, readonly string[]>;
 
+let bundledSkills: Record<string, string>;
+let bundledSkillNames: string[];
 let webFixtureServer: WebFixtureServer;
 
 beforeAll(async () => {
+  const bundledSkillDirectories = await readdir(bundledSkillsDirectory, {
+    withFileTypes: true,
+  });
+
+  bundledSkillNames = bundledSkillDirectories
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort((left, right) => {
+      return left.localeCompare(right);
+    });
+  bundledSkills = Object.fromEntries(
+    bundledSkillNames.map((skillName) => {
+      return [skillName, join(bundledSkillsDirectory, skillName)];
+    }),
+  );
   webFixtureServer = await startWebFixtureServer();
 });
 
@@ -83,7 +92,7 @@ describe("CLI integration", () => {
     const result = await runCli(["--version"]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("devtools/1.0.1");
+    expect(result.stdout).toContain("1.0.1");
     expect(result.stderr).toBe("");
   });
 
@@ -100,48 +109,45 @@ describe("CLI integration", () => {
     const sitemapHelpResult = await runCli(["web", "sitemap", "--help"]);
 
     expect(installHelpResult.exitCode).toBe(0);
-    expect(installHelpResult.stdout).toContain(
-      "$ devtools install skills AGENT",
-    );
-    expect(installHelpResult.stdout).toContain("pi");
-    expect(installHelpResult.stdout).toContain("codex");
-    expect(installHelpResult.stdout).toContain("claude");
-    expect(installHelpResult.stdout).toContain("opencode");
-    expect(installHelpResult.stdout).toContain("copilot");
+    expect(installHelpResult.stdout).toContain("devtools install skills");
+    expect(installHelpResult.stdout).toContain("--dry-run");
+    expect(installHelpResult.stdout).toContain("--target-dir");
     expect(uninstallHelpResult.exitCode).toBe(0);
-    expect(uninstallHelpResult.stdout).toContain(
-      "$ devtools uninstall skills AGENT",
-    );
-    expect(uninstallHelpResult.stdout).toContain("pi");
-    expect(uninstallHelpResult.stdout).toContain("codex");
-    expect(uninstallHelpResult.stdout).toContain("claude");
-    expect(uninstallHelpResult.stdout).toContain("opencode");
-    expect(uninstallHelpResult.stdout).toContain("copilot");
+    expect(uninstallHelpResult.stdout).toContain("devtools uninstall skills");
+    expect(uninstallHelpResult.stdout).toContain("--dry-run");
+    expect(uninstallHelpResult.stdout).toContain("--target-dir");
 
     expect(webHelpResult.exitCode).toBe(0);
-    expect(webHelpResult.stdout).toContain("$ devtools web COMMAND");
-    expect(webHelpResult.stdout).toContain("web crawl");
-    expect(webHelpResult.stdout).toContain("web docs-fetch");
-    expect(webHelpResult.stdout).toContain("web docs-search");
-    expect(webHelpResult.stdout).toContain("web inspect");
-    expect(webHelpResult.stdout).toContain("web links");
-    expect(webHelpResult.stdout).toContain("web sitemap");
+    expect(webHelpResult.stdout).toContain("Web utilities");
+    expect(webHelpResult.stdout).toContain("crawl");
+    expect(webHelpResult.stdout).toContain("docs-fetch");
+    expect(webHelpResult.stdout).toContain("docs-search");
+    expect(webHelpResult.stdout).toContain("fetch");
+    expect(webHelpResult.stdout).toContain("inspect");
+    expect(webHelpResult.stdout).toContain("links");
+    expect(webHelpResult.stdout).toContain("search");
+    expect(webHelpResult.stdout).toContain("sitemap");
     expect(crawlHelpResult.exitCode).toBe(0);
-    expect(crawlHelpResult.stdout).toContain("$ devtools web crawl [URL]");
+    expect(crawlHelpResult.stdout).toContain("devtools web crawl");
+    expect(crawlHelpResult.stdout).toContain("--max-depth");
     expect(docsFetchHelpResult.exitCode).toBe(0);
-    expect(docsFetchHelpResult.stdout).toContain(
-      "$ devtools web docs-fetch [URL]",
-    );
+    expect(docsFetchHelpResult.stdout).toContain("devtools web docs-fetch");
+    expect(docsFetchHelpResult.stdout).toContain("--format");
     expect(searchHelpResult.exitCode).toBe(0);
-    expect(searchHelpResult.stdout).toContain("$ devtools web search QUERY");
+    expect(searchHelpResult.stdout).toContain("devtools web search");
+    expect(searchHelpResult.stdout).toContain("--site");
     expect(fetchHelpResult.exitCode).toBe(0);
-    expect(fetchHelpResult.stdout).toContain("$ devtools web fetch [URL]");
+    expect(fetchHelpResult.stdout).toContain("devtools web fetch");
+    expect(fetchHelpResult.stdout).toContain("--format");
     expect(inspectHelpResult.exitCode).toBe(0);
-    expect(inspectHelpResult.stdout).toContain("$ devtools web inspect [URL]");
+    expect(inspectHelpResult.stdout).toContain("devtools web inspect");
+    expect(inspectHelpResult.stdout).toContain("--json");
     expect(linksHelpResult.exitCode).toBe(0);
-    expect(linksHelpResult.stdout).toContain("$ devtools web links [URL]");
+    expect(linksHelpResult.stdout).toContain("devtools web links");
+    expect(linksHelpResult.stdout).toContain("--same-origin");
     expect(sitemapHelpResult.exitCode).toBe(0);
-    expect(sitemapHelpResult.stdout).toContain("$ devtools web sitemap [URL]");
+    expect(sitemapHelpResult.stdout).toContain("devtools web sitemap");
+    expect(sitemapHelpResult.stdout).toContain("--same-origin");
   }, 15_000);
 
   it("installs bundled pi skills into a target directory", async () => {
@@ -430,9 +436,8 @@ describe("CLI integration", () => {
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain(
-      "Expected gemini to be one of: pi, codex, claude, opencode, copilot",
-    );
+    expect(result.stderr).toContain("gemini");
+    expect(result.stderr).toContain("pi");
   });
 
   it("fetches a local fixture page as markdown", async () => {
@@ -609,7 +614,7 @@ describe("CLI integration", () => {
 
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("command unknown not found");
+    expect(result.stderr).toContain("No command registered for `unknown`");
   });
 
   it("returns a non-zero exit code for removed sync commands", async () => {
@@ -624,10 +629,12 @@ describe("CLI integration", () => {
 
     expect(topicResult.exitCode).toBe(2);
     expect(topicResult.stdout).toBe("");
-    expect(topicResult.stderr).toContain("command sync not found");
+    expect(topicResult.stderr).toContain("No command registered for `sync`");
 
     expect(subcommandResult.exitCode).toBe(2);
     expect(subcommandResult.stdout).toBe("");
-    expect(subcommandResult.stderr).toContain("command sync:init not found");
+    expect(subcommandResult.stderr).toContain(
+      "No command registered for `sync`",
+    );
   });
 });
