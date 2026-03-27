@@ -20,6 +20,7 @@ npm install
 Run the CLI locally:
 
 ```bash
+npm run build
 npm run start -- --help
 ```
 
@@ -41,7 +42,7 @@ BRAVE_SEARCH_API_KEY=your_api_key_here
 - Fetch pages and turn them into cleaner text or markdown for agent use
 - Inspect page metadata, links, sitemaps, and crawl targets before going deeper
 - Install and uninstall reusable skill templates for supported coding agents
-- Install bash autocomplete for the CLI
+- Print shell autocomplete scripts for the CLI
 
 ## Example Commands
 
@@ -51,7 +52,7 @@ devtools web docs-search nodejs.org/docs "fs watch"
 devtools web fetch https://example.com/article --format markdown
 devtools web inspect https://example.com/article --json
 devtools install skills opencode
-devtools autocomplete install
+eval "$(devtools autocomplete bash)"
 ```
 
 ## Notes
@@ -65,7 +66,15 @@ devtools autocomplete install
 Useful commands:
 
 ```bash
+npm run build
 npm run typecheck
 npx biome check .
 npm run test
+```
+
+SEA build commands:
+
+```bash
+npm run sea:build
+npm run sea:smoke
 ```

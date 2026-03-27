@@ -4,33 +4,33 @@
 
 - `devtools`, a personal CLI tool built with Node.js and TypeScript
 - Module system: ESM
-- Runtime: execute `.ts` files directly with Node.js
+- Runtime: compile TypeScript from `src/` to ESM JavaScript in `dist/`
 - Minimum supported Node.js version: 24
 - TypeScript is configured in strict mode
-- `tsc` is used for type-checking only and must not emit JavaScript
+- `tsc` is used for type-checking and for the distributable CLI build
 - Formatting and linting are handled by Biome
 - Testing is handled by Vitest
 
 ## Working Rules
 
 - Always keep the project compatible with Node.js 24+
-- Preserve direct TypeScript execution with Node.js
 - Keep `erasableSyntaxOnly: true` enabled unless explicitly told otherwise
 - Keep TypeScript settings very strict
-- Do not introduce a build step that emits JavaScript unless explicitly requested
 - Prefer small, testable modules over putting all logic in `src/index.ts`
+- Keep `src/index.ts` as the thin runtime entrypoint and `src/application.ts` as the application bootstrap
 
 ## Source Layout
 
 - Keep `src/index.ts` as the CLI entrypoint only
 - Place CLI-specific modules under `src/cli/`
 - Place environment/configuration modules under `src/config/`
-- Place skill management modules under `src/skills/`
+- Place terminal/runtime helpers under `src/services/terminal/`
 - Place reusable cross-domain pure utilities under `src/lib/`
-- Keep domain-specific helpers with their owning domain, e.g. web parsing/formatting under `src/web/`
+- Keep domain-specific helpers with their owning domain under `src/services/`
 - Avoid leaving feature modules like `cli-types.ts` or `cli-validation.ts` in the `src/` root
-- Place tests under `tests/` with names matching `<domain>.<topic>.test.ts`
-- Place test helpers and fixture servers under `tests/helpers/`
+- Place unit and integration-style Vitest files next to the source they exercise using `*.test.ts`
+- Reserve the root `tests/` directory for built CLI end-to-end coverage using `*.e2e.test.ts`
+- Place non-e2e test helpers under `src/test/helpers/`
 - Place bundled skill templates under `skills/<skill-name>/`
 
 ## Key Dependencies
@@ -55,10 +55,13 @@ Do not consider work complete if any validation step fails.
 ## Useful Commands
 
 - Development: `npm run dev`
+- Build: `npm run build`
 - Run CLI: `npm run start`
 - Type-check: `npm run typecheck`
 - Lint/format validation: `biome check .`
 - Tests: `npm run test`
 - Full validation: `npm run check`
+- SEA build: `npm run sea:build`
+- SEA smoke: `npm run sea:smoke`
 - Auto-fix formatting/lint issues: `npm run check:fix`
 - Format: `npm run format`
