@@ -1,18 +1,32 @@
-import { JSDOM } from "jsdom";
+import { createRequire } from "node:module";
 import { z } from "zod";
 
-import { mapConcurrent } from "#app/lib/async.ts";
-import { ensureTrailingNewline } from "#app/lib/string.ts";
-import { formatInputIssues } from "#app/lib/validation.ts";
+import { mapConcurrent } from "#app/lib/async.js";
+import { ensureTrailingNewline } from "#app/lib/string.js";
+import { formatInputIssues } from "#app/lib/validation.js";
 import {
   createRequestHeaders,
   fetchWithTimeout,
-} from "#app/services/web/http.ts";
+} from "#app/services/web/http.js";
 import {
   absoluteHttpUrlSchema,
   isSameOriginUrl,
   normalizeAbsoluteUrl,
-} from "#app/services/web/url.ts";
+} from "#app/services/web/url.js";
+
+const require = createRequire(import.meta.url);
+
+type JsdomModule = {
+  JSDOM: typeof import("jsdom").JSDOM;
+};
+
+let jsdomModule: JsdomModule | undefined;
+
+const getJSDOM = () => {
+  jsdomModule ??= require("jsdom") as JsdomModule;
+
+  return jsdomModule.JSDOM;
+};
 
 export const defaultSitemapConcurrency = "4";
 
@@ -198,6 +212,7 @@ const readChildText = (element: Element, childLocalName: string) => {
 };
 
 const parseSitemapXml = (xml: string, sitemapUrl: string) => {
+  const JSDOM = getJSDOM();
   const dom = new JSDOM(xml.trim(), {
     contentType: "text/xml",
     url: sitemapUrl,

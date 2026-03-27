@@ -1,16 +1,30 @@
-import { Readability } from "@mozilla/readability";
+import { createRequire } from "node:module";
 import TurndownService from "turndown";
 import { z } from "zod";
-import { ensureTrailingNewline, normalizeWhitespace } from "#app/lib/string.ts";
-import { formatInputIssues } from "#app/lib/validation.ts";
+import { ensureTrailingNewline, normalizeWhitespace } from "#app/lib/string.js";
+import { formatInputIssues } from "#app/lib/validation.js";
 import {
   createHtmlPageLoader,
   readCanonicalUrl,
   readDocumentTitle,
   readMetaContent,
   withHtmlDocument,
-} from "#app/services/web/page.ts";
-import { absoluteHttpUrlSchema } from "#app/services/web/url.ts";
+} from "#app/services/web/page.js";
+import { absoluteHttpUrlSchema } from "#app/services/web/url.js";
+
+const require = createRequire(import.meta.url);
+
+type ReadabilityModule = {
+  Readability: typeof import("@mozilla/readability").Readability;
+};
+
+let readabilityModule: ReadabilityModule | undefined;
+
+const getReadability = () => {
+  readabilityModule ??= require("@mozilla/readability") as ReadabilityModule;
+
+  return readabilityModule.Readability;
+};
 
 export const webPageOutputFormats = [
   "markdown",
@@ -74,6 +88,7 @@ const createMarkdown = (html: string): string => {
 
 const parseArticle = (requestedUrl: string, finalUrl: string, html: string) => {
   return withHtmlDocument(html, finalUrl, (document) => {
+    const Readability = getReadability();
     const article = new Readability(document).parse();
     const body = document.body;
     const fallbackHtml = body.innerHTML.trim();

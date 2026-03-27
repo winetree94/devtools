@@ -1,16 +1,16 @@
 import { z } from "zod";
-import { ensureTrailingNewline } from "#app/lib/string.ts";
-import { formatInputIssues } from "#app/lib/validation.ts";
+import { ensureTrailingNewline } from "#app/lib/string.js";
+import { formatInputIssues } from "#app/lib/validation.js";
 import {
   type ExtractedWebPageLink,
   extractWebPageLinks,
-} from "#app/services/web/link-extractor.ts";
+} from "#app/services/web/link-extractor.js";
 import {
   createHtmlPageLoader,
   readCanonicalUrl,
   withHtmlDocument,
-} from "#app/services/web/page.ts";
-import { absoluteHttpUrlSchema } from "#app/services/web/url.ts";
+} from "#app/services/web/page.js";
+import { absoluteHttpUrlSchema } from "#app/services/web/url.js";
 
 type WebPageLinksRequest = Readonly<{
   url: string;

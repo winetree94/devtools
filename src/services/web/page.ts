@@ -1,12 +1,26 @@
-import { JSDOM } from "jsdom";
+import { createRequire } from "node:module";
 
-import { readOptionalString } from "#app/lib/string.ts";
+import { readOptionalString } from "#app/lib/string.js";
 import {
   createRequestHeaders,
   fetchWithTimeout,
   requireContentType,
-} from "#app/services/web/http.ts";
-import { normalizeAbsoluteUrl } from "#app/services/web/url.ts";
+} from "#app/services/web/http.js";
+import { normalizeAbsoluteUrl } from "#app/services/web/url.js";
+
+const require = createRequire(import.meta.url);
+
+type JsdomModule = {
+  JSDOM: typeof import("jsdom").JSDOM;
+};
+
+let jsdomModule: JsdomModule | undefined;
+
+const getJSDOM = () => {
+  jsdomModule ??= require("jsdom") as JsdomModule;
+
+  return jsdomModule.JSDOM;
+};
 
 export type HtmlPageLoadRequest = Readonly<{
   url: string;
@@ -72,6 +86,7 @@ export const withHtmlDocument = <T>(
   url: string,
   read: (document: Document) => T,
 ): T => {
+  const JSDOM = getJSDOM();
   const dom = new JSDOM(html, { url });
 
   try {

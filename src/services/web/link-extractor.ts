@@ -2,11 +2,11 @@ import {
   normalizeWhitespace,
   readOptionalString,
   splitTokens,
-} from "#app/lib/string.ts";
+} from "#app/lib/string.js";
 import {
   isSameOriginUrl,
   normalizeAbsoluteUrl,
-} from "#app/services/web/url.ts";
+} from "#app/services/web/url.js";
 
 export const webPageLinkKinds = [
   "same-origin",

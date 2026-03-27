@@ -1,18 +1,18 @@
 import { z } from "zod";
 
-import { ensureTrailingNewline, normalizeWhitespace } from "#app/lib/string.ts";
-import { formatInputIssues } from "#app/lib/validation.ts";
+import { ensureTrailingNewline, normalizeWhitespace } from "#app/lib/string.js";
+import { formatInputIssues } from "#app/lib/validation.js";
 import {
   createHtmlPageLoader,
   readCanonicalUrl,
   readDocumentTitle,
   readMetaContent,
   withHtmlDocument,
-} from "#app/services/web/page.ts";
+} from "#app/services/web/page.js";
 import {
   absoluteHttpUrlSchema,
   normalizeAbsoluteUrl,
-} from "#app/services/web/url.ts";
+} from "#app/services/web/url.js";
 
 export const webDocsOutputFormats = ["json", "markdown"] as const;
 

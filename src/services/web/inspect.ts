@@ -1,14 +1,14 @@
 import { z } from "zod";
-import { ensureTrailingNewline, readOptionalString } from "#app/lib/string.ts";
-import { formatInputIssues } from "#app/lib/validation.ts";
+import { ensureTrailingNewline, readOptionalString } from "#app/lib/string.js";
+import { formatInputIssues } from "#app/lib/validation.js";
 import {
   createHtmlPageLoader,
   readCanonicalUrl,
   readDocumentTitle,
   readMetaContent,
   withHtmlDocument,
-} from "#app/services/web/page.ts";
-import { absoluteHttpUrlSchema } from "#app/services/web/url.ts";
+} from "#app/services/web/page.js";
+import { absoluteHttpUrlSchema } from "#app/services/web/url.js";
 
 type WebPageInspectRequest = Readonly<{
   url: string;
