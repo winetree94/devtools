@@ -6,7 +6,7 @@ import {
   runWebSearch,
   runWebSearchCommand,
   WebSearchError,
-} from "#app/services/web/search.js";
+} from "#app/services/web/search.ts";
 
 type WebSearchEngine = Parameters<typeof createSearchEngineRegistry>[1][number];
 

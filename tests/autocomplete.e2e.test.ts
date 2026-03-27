@@ -1,7 +1,7 @@
 import { execa } from "execa";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { cliPath, ensureCliBuilt } from "../src/test/helpers/cli-entry.js";
+import { cliPath, ensureCliBuilt } from "../src/test/helpers/cli-entry.ts";
 
 const runCli = async (args: readonly string[]) => {
   return execa(process.execPath, [cliPath, ...args], {

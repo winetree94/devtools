@@ -4,13 +4,13 @@ import {
   batchOutputFormats,
   resolveUrlCommandInputs,
   runUrlBatchCommand,
-} from "#app/services/terminal/batch.js";
-import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.js";
-import { defaultWebRequestTimeoutMs } from "#app/services/web/http.js";
+} from "#app/services/terminal/batch.ts";
+import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.ts";
+import { defaultWebRequestTimeoutMs } from "#app/services/web/http.ts";
 import {
   createWebPageLinkReader,
   runWebLinksCommand,
-} from "#app/services/web/links.js";
+} from "#app/services/web/links.ts";
 
 const webPageLinkReader = createWebPageLinkReader({
   fetchImplementation: fetch,

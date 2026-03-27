@@ -6,7 +6,7 @@ import {
   readDocumentTitle,
   readMetaContent,
   withHtmlDocument,
-} from "#app/services/web/page.js";
+} from "#app/services/web/page.ts";
 
 describe("createHtmlPageLoader", () => {
   it("loads html pages and normalizes requested and final urls", async () => {

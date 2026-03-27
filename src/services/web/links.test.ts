@@ -5,7 +5,7 @@ import {
   formatWebPageLinks,
   runWebLinksCommand,
   WebPageLinksError,
-} from "#app/services/web/links.js";
+} from "#app/services/web/links.ts";
 
 type WebPageLinks = Awaited<
   ReturnType<ReturnType<typeof createWebPageLinkReader>["read"]>

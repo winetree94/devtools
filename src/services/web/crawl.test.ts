@@ -5,7 +5,7 @@ import {
   formatWebCrawlResult,
   runWebCrawlCommand,
   WebCrawlError,
-} from "#app/services/web/crawl.js";
+} from "#app/services/web/crawl.ts";
 
 type WebCrawlResult = Awaited<
   ReturnType<ReturnType<typeof createWebCrawler>["crawl"]>

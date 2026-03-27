@@ -1,6 +1,6 @@
 import { buildRouteMap } from "@stricli/core";
 
-import { installSkillsCommand } from "#app/cli/install-skills.js";
+import { installSkillsCommand } from "#app/cli/install-skills.ts";
 
 const installRoutes = buildRouteMap({
   docs: {

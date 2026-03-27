@@ -1,13 +1,13 @@
 import { buildRouteMap } from "@stricli/core";
 
-import { webCrawlCommand } from "#app/cli/web/crawl.js";
-import { webDocsFetchCommand } from "#app/cli/web/docs-fetch.js";
-import { webDocsSearchCommand } from "#app/cli/web/docs-search.js";
-import { webFetchCommand } from "#app/cli/web/fetch.js";
-import { webInspectCommand } from "#app/cli/web/inspect.js";
-import { webLinksCommand } from "#app/cli/web/links.js";
-import { webSearchCommand } from "#app/cli/web/search.js";
-import { webSitemapCommand } from "#app/cli/web/sitemap.js";
+import { webCrawlCommand } from "#app/cli/web/crawl.ts";
+import { webDocsFetchCommand } from "#app/cli/web/docs-fetch.ts";
+import { webDocsSearchCommand } from "#app/cli/web/docs-search.ts";
+import { webFetchCommand } from "#app/cli/web/fetch.ts";
+import { webInspectCommand } from "#app/cli/web/inspect.ts";
+import { webLinksCommand } from "#app/cli/web/links.ts";
+import { webSearchCommand } from "#app/cli/web/search.ts";
+import { webSitemapCommand } from "#app/cli/web/sitemap.ts";
 
 const webRoutes = buildRouteMap({
   docs: {

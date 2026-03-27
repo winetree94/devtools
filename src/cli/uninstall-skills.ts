@@ -6,8 +6,8 @@ import {
   runUninstallSkillsCommand,
   type SupportedSkillInstallAgent,
   supportedSkillInstallAgents,
-} from "#app/services/skills/install.js";
-import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.js";
+} from "#app/services/skills/install.ts";
+import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.ts";
 
 const bundledSkillsDirectory = fileURLToPath(
   new URL("../../skills", import.meta.url),

@@ -1,10 +1,10 @@
 import { type Application, buildRouteMap } from "@stricli/core";
 
-import { buildAutocompleteRoute } from "#app/cli/autocomplete.js";
-import installRoutes from "#app/cli/install.js";
-import uninstallRoutes from "#app/cli/uninstall.js";
-import webRoutes from "#app/cli/web/index.js";
-import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.js";
+import { buildAutocompleteRoute } from "#app/cli/autocomplete.ts";
+import installRoutes from "#app/cli/install.ts";
+import uninstallRoutes from "#app/cli/uninstall.ts";
+import webRoutes from "#app/cli/web/index.ts";
+import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.ts";
 
 export const buildRootRoute = (
   getApplication: () => Application<DevtoolsCliContext>,

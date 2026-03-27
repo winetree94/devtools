@@ -5,7 +5,7 @@ import {
   formatWebPageInspection,
   runWebInspectCommand,
   WebPageInspectError,
-} from "#app/services/web/inspect.js";
+} from "#app/services/web/inspect.ts";
 
 type WebPageInspection = Awaited<
   ReturnType<ReturnType<typeof createWebPageInspector>["inspect"]>

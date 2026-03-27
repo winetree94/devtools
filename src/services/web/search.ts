@@ -1,16 +1,16 @@
 import { z } from "zod";
 
-import { isJsonObject } from "#app/lib/object.js";
-import { readString } from "#app/lib/string.js";
+import { isJsonObject } from "#app/lib/object.ts";
+import { readString } from "#app/lib/string.ts";
 import {
   formatInputIssues,
   trimmedOptionalStringSchema,
-} from "#app/lib/validation.js";
+} from "#app/lib/validation.ts";
 import {
   fetchWithTimeout,
   requireContentType,
-} from "#app/services/web/http.js";
-import { normalizeSearchSite } from "#app/services/web/url.js";
+} from "#app/services/web/http.ts";
+import { normalizeSearchSite } from "#app/services/web/url.ts";
 
 type WebSearchRequest = Readonly<{
   query: string;

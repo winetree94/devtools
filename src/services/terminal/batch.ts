@@ -1,8 +1,8 @@
-import { ensureTrailingNewline } from "#app/lib/string.js";
+import { ensureTrailingNewline } from "#app/lib/string.ts";
 import {
   readStdinText,
   shouldReadFromStdin,
-} from "#app/services/terminal/stdin.js";
+} from "#app/services/terminal/stdin.ts";
 
 export const batchInputFormats = ["text", "jsonl"] as const;
 export const batchOutputFormats = ["text", "jsonl"] as const;

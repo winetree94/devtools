@@ -1,12 +1,12 @@
 import { buildCommand, numberParser } from "@stricli/core";
 
-import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.js";
-import { defaultWebRequestTimeoutMs } from "#app/services/web/http.js";
+import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.ts";
+import { defaultWebRequestTimeoutMs } from "#app/services/web/http.ts";
 import {
   createBraveSearchEngine,
   createSearchEngineRegistry,
   runWebDocsSearchCommand,
-} from "#app/services/web/search.js";
+} from "#app/services/web/search.ts";
 
 const createCommandSearchEngineRegistry = (
   env: NodeJS.ProcessEnv,

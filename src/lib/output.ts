@@ -1,4 +1,4 @@
-import { ensureTrailingNewline } from "#app/lib/string.js";
+import { ensureTrailingNewline } from "#app/lib/string.ts";
 
 type OutputLine = false | null | string | undefined;
 

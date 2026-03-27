@@ -4,14 +4,14 @@ import {
   batchOutputFormats,
   resolveUrlCommandInputs,
   runUrlBatchCommand,
-} from "#app/services/terminal/batch.js";
-import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.js";
-import { defaultWebRequestTimeoutMs } from "#app/services/web/http.js";
+} from "#app/services/terminal/batch.ts";
+import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.ts";
+import { defaultWebRequestTimeoutMs } from "#app/services/web/http.ts";
 import {
   createWebSitemapReader,
   defaultSitemapConcurrency,
   runWebSitemapCommand,
-} from "#app/services/web/sitemap.js";
+} from "#app/services/web/sitemap.ts";
 
 const webSitemapReader = createWebSitemapReader({
   fetchImplementation: fetch,

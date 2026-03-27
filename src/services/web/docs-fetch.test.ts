@@ -5,7 +5,7 @@ import {
   formatWebDocsContent,
   runWebDocsFetchCommand,
   WebDocsReadError,
-} from "#app/services/web/docs-fetch.js";
+} from "#app/services/web/docs-fetch.ts";
 
 type WebDocsContent = Awaited<
   ReturnType<ReturnType<typeof createFetchWebDocsReader>["read"]>

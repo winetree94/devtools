@@ -17,7 +17,7 @@
     "devtools"
   ],
   "imports": {
-    "#app/*.js": "./dist/*.js"
+    "#app/*.ts": "./dist/*.js"
   },
   "bin": {
     "devtools": "./bin/index.js"

@@ -6,8 +6,10 @@
     "moduleResolution": "NodeNext",
     "baseUrl": ".",
     "paths": {
-      "#app/*.js": ["./src/*.ts"]
+      "#app/*.ts": ["./src/*.ts"]
     },
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "moduleDetection": "force",
     "types": ["node"],
     "resolveJsonModule": true,

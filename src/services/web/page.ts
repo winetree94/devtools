@@ -1,12 +1,12 @@
 import { createRequire } from "node:module";
 
-import { readOptionalString } from "#app/lib/string.js";
+import { readOptionalString } from "#app/lib/string.ts";
 import {
   createRequestHeaders,
   fetchWithTimeout,
   requireContentType,
-} from "#app/services/web/http.js";
-import { normalizeAbsoluteUrl } from "#app/services/web/url.js";
+} from "#app/services/web/http.ts";
+import { normalizeAbsoluteUrl } from "#app/services/web/url.ts";
 
 const require = createRequire(import.meta.url);
 

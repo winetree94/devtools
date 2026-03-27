@@ -12,13 +12,13 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { supportedSkillInstallAgents } from "#app/services/skills/agents.js";
+import { supportedSkillInstallAgents } from "#app/services/skills/agents.ts";
 import {
   createSkillUninstaller,
   formatSkillUninstallResult,
   runUninstallSkillsCommand,
   SkillUninstallError,
-} from "#app/services/skills/install.js";
+} from "#app/services/skills/install.ts";
 
 const temporaryDirectories: string[] = [];
 

@@ -8,14 +8,14 @@ import {
   text_en,
 } from "@stricli/core";
 
-import { buildRootRoute } from "#app/cli/index.js";
-import { loadEnvironment } from "#app/config/env.js";
-import { formatErrorMessage } from "#app/lib/output.js";
-import { currentVersion } from "#app/lib/version.js";
+import { buildRootRoute } from "#app/cli/index.ts";
+import { loadEnvironment } from "#app/config/env.ts";
+import { formatErrorMessage } from "#app/lib/output.ts";
+import { currentVersion } from "#app/lib/version.ts";
 import {
   createCliContext,
   type DevtoolsCliContext,
-} from "#app/services/terminal/cli-runtime.js";
+} from "#app/services/terminal/cli-runtime.ts";
 
 type CommandError = Error & {
   exitCode?: number;

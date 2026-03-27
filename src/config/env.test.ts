@@ -8,7 +8,7 @@ import {
   EnvironmentError,
   loadEnvironment,
   validateEnvironment,
-} from "#app/config/env.js";
+} from "#app/config/env.ts";
 
 const temporaryDirectories: string[] = [];
 

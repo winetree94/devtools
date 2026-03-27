@@ -1,22 +1,22 @@
 import { z } from "zod";
 
-import { mapConcurrent } from "#app/lib/async.js";
-import { ensureTrailingNewline } from "#app/lib/string.js";
-import { formatInputIssues } from "#app/lib/validation.js";
+import { mapConcurrent } from "#app/lib/async.ts";
+import { ensureTrailingNewline } from "#app/lib/string.ts";
+import { formatInputIssues } from "#app/lib/validation.ts";
 import {
   type ExtractedWebPageLink,
   extractWebPageLinks,
-} from "#app/services/web/link-extractor.js";
+} from "#app/services/web/link-extractor.ts";
 import {
   createHtmlPageLoader,
   readCanonicalUrl,
   readDocumentTitle,
   withHtmlDocument,
-} from "#app/services/web/page.js";
+} from "#app/services/web/page.ts";
 import {
   absoluteHttpUrlSchema,
   normalizeAbsoluteUrl,
-} from "#app/services/web/url.js";
+} from "#app/services/web/url.ts";
 
 export const defaultWebCrawlConcurrency = "4";
 export const defaultWebCrawlMaxDepth = "2";

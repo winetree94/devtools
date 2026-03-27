@@ -3,8 +3,8 @@ import {
   parseJsonlUrls,
   parseTextUrls,
   runUrlBatchCommand,
-} from "#app/services/terminal/batch.js";
-import { shouldReadFromStdin } from "#app/services/terminal/stdin.js";
+} from "#app/services/terminal/batch.ts";
+import { shouldReadFromStdin } from "#app/services/terminal/stdin.ts";
 
 describe("batch helpers", () => {
   it("parses text stdin inputs", () => {

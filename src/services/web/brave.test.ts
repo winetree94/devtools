@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createBraveSearchEngine,
   WebSearchError,
-} from "#app/services/web/search.js";
+} from "#app/services/web/search.ts";
 
 describe("createBraveSearchEngine", () => {
   it("requires an api key", async () => {

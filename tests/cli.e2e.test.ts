@@ -12,13 +12,13 @@ import { fileURLToPath } from "node:url";
 
 import { execa } from "execa";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { SupportedSkillInstallAgent } from "#app/services/skills/agents.js";
+import type { SupportedSkillInstallAgent } from "#app/services/skills/agents.ts";
 import packageJson from "../package.json" with { type: "json" };
-import { cliPath, ensureCliBuilt } from "../src/test/helpers/cli-entry.js";
+import { cliPath, ensureCliBuilt } from "../src/test/helpers/cli-entry.ts";
 import {
   startWebFixtureServer,
   type WebFixtureServer,
-} from "../src/test/helpers/web-fixture-server.js";
+} from "../src/test/helpers/web-fixture-server.ts";
 
 const bundledSkillsDirectory = fileURLToPath(
   new URL("../skills", import.meta.url),

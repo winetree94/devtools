@@ -1,16 +1,16 @@
 import { createRequire } from "node:module";
 import TurndownService from "turndown";
 import { z } from "zod";
-import { ensureTrailingNewline, normalizeWhitespace } from "#app/lib/string.js";
-import { formatInputIssues } from "#app/lib/validation.js";
+import { ensureTrailingNewline, normalizeWhitespace } from "#app/lib/string.ts";
+import { formatInputIssues } from "#app/lib/validation.ts";
 import {
   createHtmlPageLoader,
   readCanonicalUrl,
   readDocumentTitle,
   readMetaContent,
   withHtmlDocument,
-} from "#app/services/web/page.js";
-import { absoluteHttpUrlSchema } from "#app/services/web/url.js";
+} from "#app/services/web/page.ts";
+import { absoluteHttpUrlSchema } from "#app/services/web/url.ts";
 
 const require = createRequire(import.meta.url);
 

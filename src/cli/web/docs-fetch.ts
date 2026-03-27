@@ -4,14 +4,14 @@ import {
   batchOutputFormats,
   resolveUrlCommandInputs,
   runUrlBatchCommand,
-} from "#app/services/terminal/batch.js";
-import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.js";
+} from "#app/services/terminal/batch.ts";
+import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.ts";
 import {
   createFetchWebDocsReader,
   runWebDocsFetchCommand,
   webDocsOutputFormats,
-} from "#app/services/web/docs-fetch.js";
-import { defaultWebRequestTimeoutMs } from "#app/services/web/http.js";
+} from "#app/services/web/docs-fetch.ts";
+import { defaultWebRequestTimeoutMs } from "#app/services/web/http.ts";
 
 const webDocsReader = createFetchWebDocsReader({
   fetchImplementation: fetch,

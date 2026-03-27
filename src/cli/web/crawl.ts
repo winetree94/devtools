@@ -4,16 +4,16 @@ import {
   batchOutputFormats,
   resolveUrlCommandInputs,
   runUrlBatchCommand,
-} from "#app/services/terminal/batch.js";
-import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.js";
+} from "#app/services/terminal/batch.ts";
+import type { DevtoolsCliContext } from "#app/services/terminal/cli-runtime.ts";
 import {
   createWebCrawler,
   defaultWebCrawlConcurrency,
   defaultWebCrawlMaxDepth,
   defaultWebCrawlMaxPages,
   runWebCrawlCommand,
-} from "#app/services/web/crawl.js";
-import { defaultWebRequestTimeoutMs } from "#app/services/web/http.js";
+} from "#app/services/web/crawl.ts";
+import { defaultWebRequestTimeoutMs } from "#app/services/web/http.ts";
 
 const webCrawler = createWebCrawler({
   fetchImplementation: fetch,
