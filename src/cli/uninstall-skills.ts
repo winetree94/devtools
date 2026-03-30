@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 import { buildChoiceParser, buildCommand } from "@stricli/core";
 import {
   createSkillUninstaller,
+  formatSkillUninstallResult,
   runUninstallSkillsCommand,
+  SkillUninstallError,
   type SupportedSkillInstallAgent,
   supportedSkillInstallAgents,
 } from "#app/services/skills/install.ts";
@@ -18,6 +20,7 @@ const skillUninstaller = createSkillUninstaller({
 });
 
 type UninstallSkillsFlags = Readonly<{
+  all: boolean;
   dryRun: boolean;
   targetDir?: string;
 }>;
@@ -29,11 +32,41 @@ export const uninstallSkillsCommand = buildCommand({
   func: async function (
     this: DevtoolsCliContext,
     flags: UninstallSkillsFlags,
-    agent: SupportedSkillInstallAgent,
+    agent?: SupportedSkillInstallAgent,
   ): Promise<void> {
+    if (flags.all && flags.targetDir !== undefined) {
+      throw new SkillUninstallError(
+        "--all and --target-dir cannot be used together.",
+      );
+    }
+
+    if (flags.all && agent !== undefined) {
+      throw new SkillUninstallError(
+        "--all and a specific agent cannot be used together.",
+      );
+    }
+
+    if (!flags.all && agent === undefined) {
+      throw new SkillUninstallError(
+        "Specify an agent to uninstall for, or use --all to uninstall for all agents.",
+      );
+    }
+
+    if (flags.all) {
+      for (const target of supportedSkillInstallAgents) {
+        const result = await skillUninstaller.uninstall({
+          agent: target,
+          dryRun: flags.dryRun,
+        });
+        this.process.stdout.write(formatSkillUninstallResult(result));
+      }
+
+      return;
+    }
+
     const output = await runUninstallSkillsCommand(
       {
-        agent,
+        agent: agent as SupportedSkillInstallAgent,
         options: flags,
       },
       {
@@ -45,6 +78,10 @@ export const uninstallSkillsCommand = buildCommand({
   },
   parameters: {
     flags: {
+      all: {
+        brief: "Uninstall skills for all supported agent harnesses",
+        kind: "boolean",
+      },
       dryRun: {
         brief: "Show what would be uninstalled without changing files",
         kind: "boolean",
@@ -62,6 +99,7 @@ export const uninstallSkillsCommand = buildCommand({
       parameters: [
         {
           brief: "Agent harness to uninstall skills for",
+          optional: true,
           parse: buildChoiceParser(supportedSkillInstallAgents),
           placeholder: "agent",
         },

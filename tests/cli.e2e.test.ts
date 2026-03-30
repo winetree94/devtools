@@ -1,11 +1,4 @@
-import {
-  lstat,
-  mkdtemp,
-  readdir,
-  readFile,
-  realpath,
-  rm,
-} from "node:fs/promises";
+import { lstat, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,7 +24,6 @@ const defaultTargetDirectories = {
   copilot: [".copilot", "skills"],
 } satisfies Record<SupportedSkillInstallAgent, readonly string[]>;
 
-let bundledSkills: Record<string, string>;
 let bundledSkillNames: string[];
 let webFixtureServer: WebFixtureServer;
 
@@ -48,11 +40,6 @@ beforeAll(async () => {
     .sort((left, right) => {
       return left.localeCompare(right);
     });
-  bundledSkills = Object.fromEntries(
-    bundledSkillNames.map((skillName) => {
-      return [skillName, join(bundledSkillsDirectory, skillName)];
-    }),
-  );
   webFixtureServer = await startWebFixtureServer();
 });
 
@@ -180,8 +167,8 @@ describe("CLI integration", () => {
         const skillLinkPath = join(targetDirectory, skillName);
         const linkStats = await lstat(skillLinkPath);
 
-        expect(linkStats.isSymbolicLink()).toBe(true);
-        expect(await realpath(skillLinkPath)).toBe(bundledSkills[skillName]);
+        expect(linkStats.isDirectory()).toBe(true);
+        expect(linkStats.isSymbolicLink()).toBe(false);
       }
 
       expect(
@@ -235,9 +222,11 @@ describe("CLI integration", () => {
       );
 
       for (const skillName of bundledSkillNames) {
-        expect(await realpath(join(agentDirectory, "skills", skillName))).toBe(
-          bundledSkills[skillName],
-        );
+        const installedPath = join(agentDirectory, "skills", skillName);
+        const installedStats = await lstat(installedPath);
+
+        expect(installedStats.isDirectory()).toBe(true);
+        expect(installedStats.isSymbolicLink()).toBe(false);
       }
     } finally {
       await rm(workspaceDirectory, { force: true, recursive: true });
@@ -270,9 +259,11 @@ describe("CLI integration", () => {
       );
 
       for (const skillName of bundledSkillNames) {
-        expect(await realpath(join(expectedTargetDirectory, skillName))).toBe(
-          bundledSkills[skillName],
-        );
+        const installedPath = join(expectedTargetDirectory, skillName);
+        const installedStats = await lstat(installedPath);
+
+        expect(installedStats.isDirectory()).toBe(true);
+        expect(installedStats.isSymbolicLink()).toBe(false);
       }
 
       const uninstallResult = await runCli(["uninstall", "skills", agent], {
@@ -393,9 +384,11 @@ describe("CLI integration", () => {
       );
 
       for (const skillName of bundledSkillNames) {
-        expect(await realpath(join(targetDirectory, skillName))).toBe(
-          bundledSkills[skillName],
-        );
+        const installedPath = join(targetDirectory, skillName);
+        const installedStats = await lstat(installedPath);
+
+        expect(installedStats.isDirectory()).toBe(true);
+        expect(installedStats.isSymbolicLink()).toBe(false);
       }
     } finally {
       await rm(targetDirectory, { force: true, recursive: true });
@@ -440,6 +433,131 @@ describe("CLI integration", () => {
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("gemini");
     expect(result.stderr).toContain("pi");
+  });
+
+  it("rejects install skills with no agent and no --all flag", async () => {
+    const result = await runCli(["install", "skills"], { reject: false });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("--all");
+  });
+
+  it("rejects --all combined with --target-dir for install", async () => {
+    const result = await runCli(
+      ["install", "skills", "--all", "--target-dir", "/tmp/test"],
+      { reject: false },
+    );
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("--all");
+    expect(result.stderr).toContain("--target-dir");
+  });
+
+  it("rejects --all combined with a specific agent for install", async () => {
+    const result = await runCli(["install", "skills", "--all", "pi"], {
+      reject: false,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("--all");
+  });
+
+  it("installs bundled skills for all agents with --all", async () => {
+    const homeDirectory = await mkdtemp(
+      join(tmpdir(), "devtools-all-install-"),
+    );
+
+    try {
+      const result = await runCli(["install", "skills", "--all"], {
+        env: { HOME: homeDirectory, PI_CODING_AGENT_DIR: "" },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toBe("");
+
+      for (const [agent, targetSegments] of Object.entries(
+        defaultTargetDirectories,
+      )) {
+        expect(result.stdout).toContain(
+          `Installed ${bundledSkillNames.length} skills for ${agent}.`,
+        );
+
+        const targetDirectory = join(homeDirectory, ...targetSegments);
+
+        for (const skillName of bundledSkillNames) {
+          const installedStats = await lstat(join(targetDirectory, skillName));
+          expect(installedStats.isDirectory()).toBe(true);
+        }
+      }
+    } finally {
+      await rm(homeDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it("supports dry-run --all installation without creating files", async () => {
+    const homeDirectory = await mkdtemp(
+      join(tmpdir(), "devtools-all-dry-run-"),
+    );
+
+    try {
+      const result = await runCli(["install", "skills", "--all", "--dry-run"], {
+        env: { HOME: homeDirectory, PI_CODING_AGENT_DIR: "" },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toBe("");
+
+      for (const agent of Object.keys(defaultTargetDirectories)) {
+        expect(result.stdout).toContain(
+          `Dry run for ${agent}: ${bundledSkillNames.length} skills evaluated.`,
+        );
+      }
+
+      for (const targetSegments of Object.values(defaultTargetDirectories)) {
+        await expect(
+          lstat(join(homeDirectory, ...targetSegments)),
+        ).rejects.toMatchObject({ code: "ENOENT" });
+      }
+    } finally {
+      await rm(homeDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it("uninstalls bundled skills for all agents with --all", async () => {
+    const homeDirectory = await mkdtemp(
+      join(tmpdir(), "devtools-all-uninstall-"),
+    );
+
+    try {
+      await runCli(["install", "skills", "--all"], {
+        env: { HOME: homeDirectory, PI_CODING_AGENT_DIR: "" },
+      });
+
+      const result = await runCli(["uninstall", "skills", "--all"], {
+        env: { HOME: homeDirectory, PI_CODING_AGENT_DIR: "" },
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stderr).toBe("");
+
+      for (const [agent, targetSegments] of Object.entries(
+        defaultTargetDirectories,
+      )) {
+        expect(result.stdout).toContain(
+          `Removed ${bundledSkillNames.length} skills for ${agent}.`,
+        );
+
+        const targetDirectory = join(homeDirectory, ...targetSegments);
+
+        for (const skillName of bundledSkillNames) {
+          await expect(
+            lstat(join(targetDirectory, skillName)),
+          ).rejects.toMatchObject({ code: "ENOENT" });
+        }
+      }
+    } finally {
+      await rm(homeDirectory, { force: true, recursive: true });
+    }
   });
 
   it("fetches a local fixture page as markdown", async () => {

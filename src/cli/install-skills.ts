@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 import { buildChoiceParser, buildCommand } from "@stricli/core";
 import {
   createSkillInstaller,
+  formatSkillInstallResult,
   runInstallSkillsCommand,
+  SkillInstallError,
   type SupportedSkillInstallAgent,
   supportedSkillInstallAgents,
 } from "#app/services/skills/install.ts";
@@ -18,6 +20,7 @@ const skillInstaller = createSkillInstaller({
 });
 
 type InstallSkillsFlags = Readonly<{
+  all: boolean;
   dryRun: boolean;
   force: boolean;
   targetDir?: string;
@@ -30,11 +33,42 @@ export const installSkillsCommand = buildCommand({
   func: async function (
     this: DevtoolsCliContext,
     flags: InstallSkillsFlags,
-    agent: SupportedSkillInstallAgent,
+    agent?: SupportedSkillInstallAgent,
   ): Promise<void> {
+    if (flags.all && flags.targetDir !== undefined) {
+      throw new SkillInstallError(
+        "--all and --target-dir cannot be used together.",
+      );
+    }
+
+    if (flags.all && agent !== undefined) {
+      throw new SkillInstallError(
+        "--all and a specific agent cannot be used together.",
+      );
+    }
+
+    if (!flags.all && agent === undefined) {
+      throw new SkillInstallError(
+        "Specify an agent to install for, or use --all to install for all agents.",
+      );
+    }
+
+    if (flags.all) {
+      for (const target of supportedSkillInstallAgents) {
+        const result = await skillInstaller.install({
+          agent: target,
+          dryRun: flags.dryRun,
+          force: flags.force,
+        });
+        this.process.stdout.write(formatSkillInstallResult(result));
+      }
+
+      return;
+    }
+
     const output = await runInstallSkillsCommand(
       {
-        agent,
+        agent: agent as SupportedSkillInstallAgent,
         options: flags,
       },
       {
@@ -46,6 +80,10 @@ export const installSkillsCommand = buildCommand({
   },
   parameters: {
     flags: {
+      all: {
+        brief: "Install skills for all supported agent harnesses",
+        kind: "boolean",
+      },
       dryRun: {
         brief: "Show what would be installed without changing files",
         kind: "boolean",
@@ -67,6 +105,7 @@ export const installSkillsCommand = buildCommand({
       parameters: [
         {
           brief: "Agent harness to install skills for",
+          optional: true,
           parse: buildChoiceParser(supportedSkillInstallAgents),
           placeholder: "agent",
         },
