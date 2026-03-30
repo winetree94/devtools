@@ -2,7 +2,6 @@ import {
   lstat,
   mkdir,
   mkdtemp,
-  realpath,
   rm,
   symlink,
   writeFile,
@@ -160,7 +159,46 @@ describe("runUninstallSkillsCommand", () => {
 describe("createSkillUninstaller", () => {
   it.each(
     supportedSkillInstallAgents,
-  )("removes managed %s skill symlinks", async (agent) => {
+  )("removes managed %s skill directory copies", async (agent) => {
+    const workspaceDirectory = await createTemporaryDirectory();
+    const skillsDirectory = join(workspaceDirectory, "skills");
+    const targetDirectory = join(workspaceDirectory, "target");
+    const skillDirectory = await createSkillDirectory(
+      skillsDirectory,
+      "web-research",
+    );
+
+    await mkdir(join(targetDirectory, "web-research"), { recursive: true });
+    await writeFile(
+      join(targetDirectory, "web-research", "SKILL.md"),
+      "# web-research",
+    );
+
+    const uninstaller = createSkillUninstaller({ skillsDirectory });
+    const result = await uninstaller.uninstall({
+      agent,
+      dryRun: false,
+      targetDirectory,
+    });
+
+    expect(result.uninstalledSkills).toEqual([
+      {
+        name: "web-research",
+        sourcePath: skillDirectory,
+        targetPath: join(targetDirectory, "web-research"),
+        status: "removed",
+      },
+    ]);
+    await expect(
+      lstat(join(targetDirectory, "web-research")),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  it.each(
+    supportedSkillInstallAgents,
+  )("removes managed %s skill symlinks (backward compat)", async (agent) => {
     const workspaceDirectory = await createTemporaryDirectory();
     const skillsDirectory = join(workspaceDirectory, "skills");
     const targetDirectory = join(workspaceDirectory, "target");
@@ -196,7 +234,36 @@ describe("createSkillUninstaller", () => {
 
   it.each(
     supportedSkillInstallAgents,
-  )("supports dry-run %s removal without deleting files", async (agent) => {
+  )("supports dry-run %s removal of directory copies without deleting files", async (agent) => {
+    const workspaceDirectory = await createTemporaryDirectory();
+    const skillsDirectory = join(workspaceDirectory, "skills");
+    const targetDirectory = join(workspaceDirectory, "target");
+
+    await createSkillDirectory(skillsDirectory, "web-research");
+    await mkdir(join(targetDirectory, "web-research"), { recursive: true });
+    await writeFile(
+      join(targetDirectory, "web-research", "SKILL.md"),
+      "# web-research",
+    );
+
+    const uninstaller = createSkillUninstaller({ skillsDirectory });
+    const result = await uninstaller.uninstall({
+      agent,
+      dryRun: true,
+      targetDirectory,
+    });
+
+    expect(result.uninstalledSkills[0]).toMatchObject({
+      name: "web-research",
+      status: "would-remove",
+    });
+    const dirStats = await lstat(join(targetDirectory, "web-research"));
+    expect(dirStats.isDirectory()).toBe(true);
+  });
+
+  it.each(
+    supportedSkillInstallAgents,
+  )("supports dry-run %s removal without deleting files (backward compat)", async (agent) => {
     const workspaceDirectory = await createTemporaryDirectory();
     const skillsDirectory = join(workspaceDirectory, "skills");
     const targetDirectory = join(workspaceDirectory, "target");
@@ -219,9 +286,8 @@ describe("createSkillUninstaller", () => {
       name: "web-research",
       status: "would-remove",
     });
-    expect(await realpath(join(targetDirectory, "web-research"))).toBe(
-      skillDirectory,
-    );
+    const linkStats = await lstat(join(targetDirectory, "web-research"));
+    expect(linkStats.isSymbolicLink()).toBe(true);
   });
 
   it("uses PI_CODING_AGENT_DIR when no target directory is provided", async () => {
@@ -321,7 +387,7 @@ describe("createSkillUninstaller", () => {
         targetDirectory,
       }),
     ).rejects.toThrowError(
-      `Skill target is not a managed symlink: ${join(targetDirectory, "web-research")}`,
+      `Skill target is not a managed skill directory: ${join(targetDirectory, "web-research")}`,
     );
   });
 

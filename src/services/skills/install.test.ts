@@ -3,7 +3,6 @@ import {
   mkdir,
   mkdtemp,
   readFile,
-  realpath,
   rm,
   symlink,
   writeFile,
@@ -168,7 +167,7 @@ describe("runInstallSkillsCommand", () => {
 describe("createSkillInstaller", () => {
   it.each(
     supportedSkillInstallAgents,
-  )("installs discovered %s skills as symbolic links", async (agent) => {
+  )("installs discovered %s skills as directory copies", async (agent) => {
     const workspaceDirectory = await createTemporaryDirectory();
     const skillsDirectory = join(workspaceDirectory, "skills");
     const targetDirectory = join(workspaceDirectory, "target");
@@ -190,14 +189,12 @@ describe("createSkillInstaller", () => {
       "installed",
     ]);
 
-    const linkPath = join(targetDirectory, "web-research");
-    const linkStats = await lstat(linkPath);
+    const installedPath = join(targetDirectory, "web-research");
+    const installedStats = await lstat(installedPath);
 
-    expect(linkStats.isSymbolicLink()).toBe(true);
-    expect(await realpath(linkPath)).toBe(
-      join(skillsDirectory, "web-research"),
-    );
-    expect(await readFile(join(linkPath, "SKILL.md"), "utf8")).toContain(
+    expect(installedStats.isDirectory()).toBe(true);
+    expect(installedStats.isSymbolicLink()).toBe(false);
+    expect(await readFile(join(installedPath, "SKILL.md"), "utf8")).toContain(
       "name: web-research",
     );
   });
@@ -253,9 +250,12 @@ describe("createSkillInstaller", () => {
     });
 
     expect(result.targetDirectory).toBe(join(agentDirectory, "skills"));
-    expect(await realpath(join(agentDirectory, "skills", "web-research"))).toBe(
-      join(skillsDirectory, "web-research"),
-    );
+
+    const installedPath = join(agentDirectory, "skills", "web-research");
+    const installedStats = await lstat(installedPath);
+
+    expect(installedStats.isDirectory()).toBe(true);
+    expect(installedStats.isSymbolicLink()).toBe(false);
   });
 
   it("prefers an explicit target directory over PI_CODING_AGENT_DIR", async () => {
@@ -279,12 +279,15 @@ describe("createSkillInstaller", () => {
     });
 
     expect(result.targetDirectory).toBe(explicitTargetDirectory);
-    expect(await realpath(join(explicitTargetDirectory, "web-research"))).toBe(
-      join(skillsDirectory, "web-research"),
-    );
+
+    const installedPath = join(explicitTargetDirectory, "web-research");
+    const installedStats = await lstat(installedPath);
+
+    expect(installedStats.isDirectory()).toBe(true);
+    expect(installedStats.isSymbolicLink()).toBe(false);
   });
 
-  it("skips skills that already point at the same directory", async () => {
+  it("skips skills that are already installed as a directory copy", async () => {
     const workspaceDirectory = await createTemporaryDirectory();
     const skillsDirectory = join(workspaceDirectory, "skills");
     const targetDirectory = join(workspaceDirectory, "target");
@@ -293,8 +296,11 @@ describe("createSkillInstaller", () => {
       "web-research",
     );
 
-    await mkdir(targetDirectory, { recursive: true });
-    await symlink(skillDirectory, join(targetDirectory, "web-research"), "dir");
+    await mkdir(join(targetDirectory, "web-research"), { recursive: true });
+    await writeFile(
+      join(targetDirectory, "web-research", "SKILL.md"),
+      "existing SKILL.md",
+    );
 
     const installer = createSkillInstaller({ skillsDirectory });
     const result = await installer.install({
@@ -344,9 +350,8 @@ describe("createSkillInstaller", () => {
       name: "web-research",
       status: "would-replace",
     });
-    expect(await realpath(join(targetDirectory, "web-research"))).toBe(
-      originalSkillDirectory,
-    );
+    const existingStats = await lstat(join(targetDirectory, "web-research"));
+    expect(existingStats.isSymbolicLink()).toBe(true);
   });
 
   it("replaces existing targets when force is enabled", async () => {
@@ -354,18 +359,15 @@ describe("createSkillInstaller", () => {
     const skillsDirectory = join(workspaceDirectory, "skills");
     const replacementSkillsDirectory = join(workspaceDirectory, "replacement");
     const targetDirectory = join(workspaceDirectory, "target");
-    const originalSkillDirectory = await createSkillDirectory(
+    const _originalSkillDirectory = await createSkillDirectory(
       replacementSkillsDirectory,
       "web-research",
     );
-    const newSkillDirectory = await createSkillDirectory(
-      skillsDirectory,
-      "web-research",
-    );
+    await createSkillDirectory(skillsDirectory, "web-research");
 
     await mkdir(targetDirectory, { recursive: true });
     await symlink(
-      originalSkillDirectory,
+      _originalSkillDirectory,
       join(targetDirectory, "web-research"),
       "dir",
     );
@@ -382,8 +384,14 @@ describe("createSkillInstaller", () => {
       name: "web-research",
       status: "replaced",
     });
-    expect(await realpath(join(targetDirectory, "web-research"))).toBe(
-      newSkillDirectory,
+
+    const installedPath = join(targetDirectory, "web-research");
+    const installedStats = await lstat(installedPath);
+
+    expect(installedStats.isDirectory()).toBe(true);
+    expect(installedStats.isSymbolicLink()).toBe(false);
+    expect(await readFile(join(installedPath, "SKILL.md"), "utf8")).toContain(
+      "name: web-research",
     );
   });
 

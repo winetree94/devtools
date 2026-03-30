@@ -1,14 +1,14 @@
 import {
   access,
+  cp,
   lstat,
   mkdir,
   readdir,
   readlink,
   realpath,
   rm,
-  symlink,
 } from "node:fs/promises";
-import { basename, dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import { z } from "zod";
 import { formatInputIssues } from "#app/lib/validation.ts";
@@ -211,6 +211,20 @@ const installSkillDirectory = async (
   try {
     const targetStats = await lstat(targetPath);
 
+    if (!targetStats.isSymbolicLink() && targetStats.isDirectory()) {
+      try {
+        await access(join(targetPath, "SKILL.md"));
+        return {
+          name,
+          sourcePath,
+          targetPath,
+          status: "skipped",
+        };
+      } catch (_error: unknown) {
+        // No SKILL.md; not a managed copy, fall through to conflict handling
+      }
+    }
+
     if (targetStats.isSymbolicLink()) {
       try {
         const targetRealPath = await realpath(targetPath);
@@ -256,9 +270,7 @@ const installSkillDirectory = async (
   }
 
   if (!dryRun) {
-    const relativeSourcePath = relative(dirname(targetPath), sourcePath);
-
-    await symlink(relativeSourcePath, targetPath, "dir");
+    await cp(sourcePath, targetPath, { recursive: true });
   }
 
   return {
@@ -281,18 +293,26 @@ const uninstallSkillDirectory = async (
   try {
     const targetStats = await lstat(targetPath);
 
-    if (!targetStats.isSymbolicLink()) {
-      throw new SkillUninstallError(
-        `Skill target is not a managed symlink: ${targetPath}`,
-      );
-    }
+    if (targetStats.isSymbolicLink()) {
+      const linkedPath = await readlink(targetPath);
+      const resolvedLinkedPath = resolve(dirname(targetPath), linkedPath);
 
-    const linkedPath = await readlink(targetPath);
-    const resolvedLinkedPath = resolve(dirname(targetPath), linkedPath);
-
-    if (resolvedLinkedPath !== sourcePath) {
+      if (resolvedLinkedPath !== sourcePath) {
+        throw new SkillUninstallError(
+          `Skill target does not point to the bundled skill: ${targetPath}`,
+        );
+      }
+    } else if (targetStats.isDirectory()) {
+      try {
+        await access(join(targetPath, "SKILL.md"));
+      } catch (_error: unknown) {
+        throw new SkillUninstallError(
+          `Skill target is not a managed skill directory: ${targetPath}`,
+        );
+      }
+    } else {
       throw new SkillUninstallError(
-        `Skill target does not point to the bundled skill: ${targetPath}`,
+        `Skill target is not a managed skill: ${targetPath}`,
       );
     }
 
