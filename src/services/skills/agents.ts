@@ -2,8 +2,7 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 
 export const supportedSkillInstallAgents = [
-  "pi",
-  "codex",
+  "common",
   "claude",
   "opencode",
   "copilot",
@@ -12,26 +11,15 @@ export const supportedSkillInstallAgents = [
 export type SupportedSkillInstallAgent =
   (typeof supportedSkillInstallAgents)[number];
 
-const resolvePiTargetDirectory = (environment: NodeJS.ProcessEnv) => {
-  const environmentWithPiDirectory = environment as NodeJS.ProcessEnv & {
-    PI_CODING_AGENT_DIR?: string;
-  };
-  const customAgentDirectory =
-    environmentWithPiDirectory.PI_CODING_AGENT_DIR?.trim();
-
-  if (customAgentDirectory !== undefined && customAgentDirectory !== "") {
-    return resolve(customAgentDirectory, "skills");
-  }
-
-  return resolve(homedir(), ".pi", "agent", "skills");
-};
-
 const skillInstallTargetDirectoryResolvers = {
-  pi: resolvePiTargetDirectory,
-  codex: () => resolve(homedir(), ".agents", "skills"),
-  claude: () => resolve(homedir(), ".claude", "skills"),
-  opencode: () => resolve(homedir(), ".config", "opencode", "skills"),
-  copilot: () => resolve(homedir(), ".copilot", "skills"),
+  common: (_environment: NodeJS.ProcessEnv) =>
+    resolve(homedir(), ".agents", "skills"),
+  claude: (_environment: NodeJS.ProcessEnv) =>
+    resolve(homedir(), ".claude", "skills"),
+  opencode: (_environment: NodeJS.ProcessEnv) =>
+    resolve(homedir(), ".config", "opencode", "skills"),
+  copilot: (_environment: NodeJS.ProcessEnv) =>
+    resolve(homedir(), ".copilot", "skills"),
 } satisfies Record<
   SupportedSkillInstallAgent,
   (environment: NodeJS.ProcessEnv) => string

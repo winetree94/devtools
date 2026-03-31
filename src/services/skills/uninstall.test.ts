@@ -64,42 +64,44 @@ afterEach(async () => {
 describe("formatSkillUninstallResult", () => {
   it("formats a readable removal summary", () => {
     const output = formatSkillUninstallResult({
-      agent: "pi",
+      agent: "common",
       dryRun: false,
       skillsDirectory: "/repo/skills",
-      targetDirectory: "/home/example/.pi/agent/skills",
+      targetDirectory: "/home/example/.agents/skills",
       uninstalledSkills: [
         {
           name: "web-research",
           sourcePath: "/repo/skills/web-research",
-          targetPath: "/home/example/.pi/agent/skills/web-research",
+          targetPath: "/home/example/.agents/skills/web-research",
           status: "removed",
         },
       ],
     });
 
-    expect(output).toContain("Removed 1 skills for pi.");
+    expect(output).toContain("Removed 1 skills for common.");
     expect(output).toContain("Summary: 1 removed, 0 skipped.");
     expect(output).toContain("- web-research: removed ->");
   });
 
   it("formats a dry-run removal summary", () => {
     const output = formatSkillUninstallResult({
-      agent: "pi",
+      agent: "common",
       dryRun: true,
       skillsDirectory: "/repo/skills",
-      targetDirectory: "/home/example/.pi/agent/skills",
+      targetDirectory: "/home/example/.agents/skills",
       uninstalledSkills: [
         {
           name: "web-research",
           sourcePath: "/repo/skills/web-research",
-          targetPath: "/home/example/.pi/agent/skills/web-research",
+          targetPath: "/home/example/.agents/skills/web-research",
           status: "would-remove",
         },
       ],
     });
 
-    expect(output).toContain("Dry run for pi uninstall: 1 skills evaluated.");
+    expect(output).toContain(
+      "Dry run for common uninstall: 1 skills evaluated.",
+    );
     expect(output).toContain("Summary: 1 would remove, 0 skipped.");
     expect(output).toContain("No filesystem changes were made.");
   });
@@ -115,10 +117,10 @@ describe("runUninstallSkillsCommand", () => {
 
     const output = await runUninstallSkillsCommand(
       {
-        agent: "pi",
+        agent: "common",
         options: {
           dryRun: true,
-          targetDir: "/tmp/pi-skills",
+          targetDir: "/tmp/common-skills",
         },
       },
       {
@@ -130,12 +132,12 @@ describe("runUninstallSkillsCommand", () => {
               agent: request.agent,
               dryRun: request.dryRun,
               skillsDirectory: "/repo/skills",
-              targetDirectory: request.targetDirectory ?? "/tmp/pi-skills",
+              targetDirectory: request.targetDirectory ?? "/tmp/common-skills",
               uninstalledSkills: [
                 {
                   name: "web-research",
                   sourcePath: "/repo/skills/web-research",
-                  targetPath: "/tmp/pi-skills/web-research",
+                  targetPath: "/tmp/common-skills/web-research",
                   status: request.dryRun ? "would-remove" : "removed",
                 },
               ],
@@ -145,12 +147,14 @@ describe("runUninstallSkillsCommand", () => {
       },
     );
 
-    expect(output).toContain("Dry run for pi uninstall: 1 skills evaluated.");
+    expect(output).toContain(
+      "Dry run for common uninstall: 1 skills evaluated.",
+    );
     expect(requests).toEqual([
       {
-        agent: "pi",
+        agent: "common",
         dryRun: true,
-        targetDirectory: "/tmp/pi-skills",
+        targetDirectory: "/tmp/common-skills",
       },
     ]);
   });
@@ -290,41 +294,6 @@ describe("createSkillUninstaller", () => {
     expect(linkStats.isSymbolicLink()).toBe(true);
   });
 
-  it("uses PI_CODING_AGENT_DIR when no target directory is provided", async () => {
-    const workspaceDirectory = await createTemporaryDirectory();
-    const skillsDirectory = join(workspaceDirectory, "skills");
-    const agentDirectory = join(workspaceDirectory, "agent");
-    const skillDirectory = await createSkillDirectory(
-      skillsDirectory,
-      "web-research",
-    );
-
-    await mkdir(join(agentDirectory, "skills"), { recursive: true });
-    await symlink(
-      skillDirectory,
-      join(agentDirectory, "skills", "web-research"),
-      "dir",
-    );
-
-    const uninstaller = createSkillUninstaller({
-      environment: {
-        PI_CODING_AGENT_DIR: agentDirectory,
-      },
-      skillsDirectory,
-    });
-    const result = await uninstaller.uninstall({
-      agent: "pi",
-      dryRun: false,
-    });
-
-    expect(result.targetDirectory).toBe(join(agentDirectory, "skills"));
-    await expect(
-      lstat(join(agentDirectory, "skills", "web-research")),
-    ).rejects.toMatchObject({
-      code: "ENOENT",
-    });
-  });
-
   it("skips missing targets", async () => {
     const workspaceDirectory = await createTemporaryDirectory();
     const skillsDirectory = join(workspaceDirectory, "skills");
@@ -333,7 +302,7 @@ describe("createSkillUninstaller", () => {
 
     const uninstaller = createSkillUninstaller({ skillsDirectory });
     const result = await uninstaller.uninstall({
-      agent: "pi",
+      agent: "common",
       dryRun: false,
       targetDirectory: join(workspaceDirectory, "target"),
     });
@@ -366,7 +335,7 @@ describe("createSkillUninstaller", () => {
 
     await expect(
       uninstaller.uninstall({
-        agent: "pi",
+        agent: "common",
         dryRun: false,
         targetDirectory,
       }),
@@ -382,7 +351,7 @@ describe("createSkillUninstaller", () => {
 
     await expect(
       uninstaller.uninstall({
-        agent: "pi",
+        agent: "common",
         dryRun: false,
         targetDirectory,
       }),
@@ -402,7 +371,7 @@ describe("createSkillUninstaller", () => {
       createSkillUninstaller({
         skillsDirectory: missingSkillsDirectory,
       }).uninstall({
-        agent: "pi",
+        agent: "common",
         dryRun: false,
         targetDirectory: join(workspaceDirectory, "target-a"),
       }),
@@ -412,7 +381,7 @@ describe("createSkillUninstaller", () => {
       createSkillUninstaller({
         skillsDirectory: emptySkillsDirectory,
       }).uninstall({
-        agent: "pi",
+        agent: "common",
         dryRun: false,
         targetDirectory: join(workspaceDirectory, "target-b"),
       }),

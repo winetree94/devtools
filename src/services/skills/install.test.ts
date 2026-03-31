@@ -67,42 +67,42 @@ afterEach(async () => {
 describe("formatSkillInstallResult", () => {
   it("formats a readable installation summary", () => {
     const output = formatSkillInstallResult({
-      agent: "pi",
+      agent: "common",
       dryRun: false,
       skillsDirectory: "/repo/skills",
-      targetDirectory: "/home/example/.pi/agent/skills",
+      targetDirectory: "/home/example/.agents/skills",
       installedSkills: [
         {
           name: "web-research",
           sourcePath: "/repo/skills/web-research",
-          targetPath: "/home/example/.pi/agent/skills/web-research",
+          targetPath: "/home/example/.agents/skills/web-research",
           status: "installed",
         },
       ],
     });
 
-    expect(output).toContain("Installed 1 skills for pi.");
+    expect(output).toContain("Installed 1 skills for common.");
     expect(output).toContain("Summary: 1 installed, 0 replaced, 0 skipped.");
     expect(output).toContain("- web-research: installed ->");
   });
 
   it("formats a dry-run summary", () => {
     const output = formatSkillInstallResult({
-      agent: "pi",
+      agent: "common",
       dryRun: true,
       skillsDirectory: "/repo/skills",
-      targetDirectory: "/home/example/.pi/agent/skills",
+      targetDirectory: "/home/example/.agents/skills",
       installedSkills: [
         {
           name: "web-research",
           sourcePath: "/repo/skills/web-research",
-          targetPath: "/home/example/.pi/agent/skills/web-research",
+          targetPath: "/home/example/.agents/skills/web-research",
           status: "would-install",
         },
       ],
     });
 
-    expect(output).toContain("Dry run for pi: 1 skills evaluated.");
+    expect(output).toContain("Dry run for common: 1 skills evaluated.");
     expect(output).toContain(
       "Summary: 1 would install, 0 would replace, 0 skipped.",
     );
@@ -121,11 +121,11 @@ describe("runInstallSkillsCommand", () => {
 
     const output = await runInstallSkillsCommand(
       {
-        agent: "pi",
+        agent: "common",
         options: {
           dryRun: true,
           force: true,
-          targetDir: "/tmp/pi-skills",
+          targetDir: "/tmp/common-skills",
         },
       },
       {
@@ -137,12 +137,12 @@ describe("runInstallSkillsCommand", () => {
               agent: request.agent,
               dryRun: request.dryRun,
               skillsDirectory: "/repo/skills",
-              targetDirectory: request.targetDirectory ?? "/tmp/pi-skills",
+              targetDirectory: request.targetDirectory ?? "/tmp/common-skills",
               installedSkills: [
                 {
                   name: "web-research",
                   sourcePath: "/repo/skills/web-research",
-                  targetPath: "/tmp/pi-skills/web-research",
+                  targetPath: "/tmp/common-skills/web-research",
                   status: request.dryRun ? "would-install" : "installed",
                 },
               ],
@@ -152,13 +152,13 @@ describe("runInstallSkillsCommand", () => {
       },
     );
 
-    expect(output).toContain("Dry run for pi: 1 skills evaluated.");
+    expect(output).toContain("Dry run for common: 1 skills evaluated.");
     expect(requests).toEqual([
       {
-        agent: "pi",
+        agent: "common",
         dryRun: true,
         force: true,
-        targetDirectory: "/tmp/pi-skills",
+        targetDirectory: "/tmp/common-skills",
       },
     ]);
   });
@@ -230,63 +230,6 @@ describe("createSkillInstaller", () => {
     });
   });
 
-  it("uses PI_CODING_AGENT_DIR when no target directory is provided", async () => {
-    const workspaceDirectory = await createTemporaryDirectory();
-    const skillsDirectory = join(workspaceDirectory, "skills");
-    const agentDirectory = join(workspaceDirectory, "pi-agent");
-
-    await createSkillDirectory(skillsDirectory, "web-research");
-
-    const installer = createSkillInstaller({
-      environment: {
-        PI_CODING_AGENT_DIR: agentDirectory,
-      },
-      skillsDirectory,
-    });
-    const result = await installer.install({
-      agent: "pi",
-      dryRun: false,
-      force: false,
-    });
-
-    expect(result.targetDirectory).toBe(join(agentDirectory, "skills"));
-
-    const installedPath = join(agentDirectory, "skills", "web-research");
-    const installedStats = await lstat(installedPath);
-
-    expect(installedStats.isDirectory()).toBe(true);
-    expect(installedStats.isSymbolicLink()).toBe(false);
-  });
-
-  it("prefers an explicit target directory over PI_CODING_AGENT_DIR", async () => {
-    const workspaceDirectory = await createTemporaryDirectory();
-    const skillsDirectory = join(workspaceDirectory, "skills");
-    const explicitTargetDirectory = join(workspaceDirectory, "explicit-target");
-
-    await createSkillDirectory(skillsDirectory, "web-research");
-
-    const installer = createSkillInstaller({
-      environment: {
-        PI_CODING_AGENT_DIR: join(workspaceDirectory, "pi-agent"),
-      },
-      skillsDirectory,
-    });
-    const result = await installer.install({
-      agent: "pi",
-      dryRun: false,
-      force: false,
-      targetDirectory: explicitTargetDirectory,
-    });
-
-    expect(result.targetDirectory).toBe(explicitTargetDirectory);
-
-    const installedPath = join(explicitTargetDirectory, "web-research");
-    const installedStats = await lstat(installedPath);
-
-    expect(installedStats.isDirectory()).toBe(true);
-    expect(installedStats.isSymbolicLink()).toBe(false);
-  });
-
   it("skips skills that are already installed as a directory copy", async () => {
     const workspaceDirectory = await createTemporaryDirectory();
     const skillsDirectory = join(workspaceDirectory, "skills");
@@ -304,7 +247,7 @@ describe("createSkillInstaller", () => {
 
     const installer = createSkillInstaller({ skillsDirectory });
     const result = await installer.install({
-      agent: "pi",
+      agent: "common",
       dryRun: false,
       force: false,
       targetDirectory,
@@ -340,7 +283,7 @@ describe("createSkillInstaller", () => {
 
     const installer = createSkillInstaller({ skillsDirectory });
     const result = await installer.install({
-      agent: "pi",
+      agent: "common",
       dryRun: true,
       force: true,
       targetDirectory,
@@ -374,7 +317,7 @@ describe("createSkillInstaller", () => {
 
     const installer = createSkillInstaller({ skillsDirectory });
     const result = await installer.install({
-      agent: "pi",
+      agent: "common",
       dryRun: false,
       force: true,
       targetDirectory,
@@ -407,7 +350,7 @@ describe("createSkillInstaller", () => {
 
     await expect(
       installer.install({
-        agent: "pi",
+        agent: "common",
         dryRun: false,
         force: false,
         targetDirectory,
@@ -427,7 +370,7 @@ describe("createSkillInstaller", () => {
     await expect(
       createSkillInstaller({ skillsDirectory: missingSkillsDirectory }).install(
         {
-          agent: "pi",
+          agent: "common",
           dryRun: false,
           force: false,
           targetDirectory: join(workspaceDirectory, "target-a"),
@@ -437,7 +380,7 @@ describe("createSkillInstaller", () => {
 
     await expect(
       createSkillInstaller({ skillsDirectory: emptySkillsDirectory }).install({
-        agent: "pi",
+        agent: "common",
         dryRun: false,
         force: false,
         targetDirectory: join(workspaceDirectory, "target-b"),

@@ -17,8 +17,7 @@ const bundledSkillsDirectory = fileURLToPath(
   new URL("../skills", import.meta.url),
 );
 const defaultTargetDirectories = {
-  pi: [".pi", "agent", "skills"],
-  codex: [".agents", "skills"],
+  common: [".agents", "skills"],
   claude: [".claude", "skills"],
   opencode: [".config", "opencode", "skills"],
   copilot: [".copilot", "skills"],
@@ -139,21 +138,21 @@ describe("CLI integration", () => {
     expect(sitemapHelpResult.stdout).toContain("--same-origin");
   }, 15_000);
 
-  it("installs bundled pi skills into a target directory", async () => {
+  it("installs bundled common skills into a target directory", async () => {
     const targetDirectory = await mkdtemp(join(tmpdir(), "devtools-skills-"));
 
     try {
       const result = await runCli([
         "install",
         "skills",
-        "pi",
+        "common",
         "--target-dir",
         targetDirectory,
       ]);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain(
-        `Installed ${bundledSkillNames.length} skills for pi.`,
+        `Installed ${bundledSkillNames.length} skills for common.`,
       );
       expect(result.stderr).toBe("");
 
@@ -205,38 +204,10 @@ describe("CLI integration", () => {
     }
   });
 
-  it("installs bundled pi skills into PI_CODING_AGENT_DIR when set", async () => {
-    const workspaceDirectory = await mkdtemp(join(tmpdir(), "devtools-agent-"));
-    const agentDirectory = join(workspaceDirectory, "agent");
-
-    try {
-      const result = await runCli(["install", "skills", "pi"], {
-        env: {
-          PI_CODING_AGENT_DIR: agentDirectory,
-        },
-      });
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain(
-        `Target directory: ${join(agentDirectory, "skills")}`,
-      );
-
-      for (const skillName of bundledSkillNames) {
-        const installedPath = join(agentDirectory, "skills", skillName);
-        const installedStats = await lstat(installedPath);
-
-        expect(installedStats.isDirectory()).toBe(true);
-        expect(installedStats.isSymbolicLink()).toBe(false);
-      }
-    } finally {
-      await rm(workspaceDirectory, { force: true, recursive: true });
-    }
-  });
-
   it.each(
-    Object.entries(defaultTargetDirectories).filter(([agent]) => {
-      return agent !== "pi";
-    }) as Array<[SupportedSkillInstallAgent, readonly string[]]>,
+    Object.entries(defaultTargetDirectories) as Array<
+      [SupportedSkillInstallAgent, readonly string[]]
+    >,
   )("installs and uninstalls bundled %s skills in the default user-global directory", async (agent, targetSegments) => {
     const homeDirectory = await mkdtemp(
       join(tmpdir(), `devtools-home-${agent}-`),
@@ -299,7 +270,7 @@ describe("CLI integration", () => {
       const result = await runCli([
         "install",
         "skills",
-        "pi",
+        "common",
         "--target-dir",
         targetDirectory,
         "--dry-run",
@@ -307,7 +278,7 @@ describe("CLI integration", () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain(
-        `Dry run for pi: ${bundledSkillNames.length} skills evaluated.`,
+        `Dry run for common: ${bundledSkillNames.length} skills evaluated.`,
       );
       expect(result.stdout).toContain("No filesystem changes were made.");
       await expect(lstat(targetDirectory)).rejects.toMatchObject({
@@ -318,14 +289,14 @@ describe("CLI integration", () => {
     }
   });
 
-  it("uninstalls bundled pi skills from a target directory", async () => {
+  it("uninstalls bundled common skills from a target directory", async () => {
     const targetDirectory = await mkdtemp(join(tmpdir(), "devtools-remove-"));
 
     try {
       await runCli([
         "install",
         "skills",
-        "pi",
+        "common",
         "--target-dir",
         targetDirectory,
       ]);
@@ -333,14 +304,14 @@ describe("CLI integration", () => {
       const result = await runCli([
         "uninstall",
         "skills",
-        "pi",
+        "common",
         "--target-dir",
         targetDirectory,
       ]);
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain(
-        `Removed ${bundledSkillNames.length} skills for pi.`,
+        `Removed ${bundledSkillNames.length} skills for common.`,
       );
 
       for (const skillName of bundledSkillNames) {
@@ -364,7 +335,7 @@ describe("CLI integration", () => {
       await runCli([
         "install",
         "skills",
-        "pi",
+        "common",
         "--target-dir",
         targetDirectory,
       ]);
@@ -372,7 +343,7 @@ describe("CLI integration", () => {
       const result = await runCli([
         "uninstall",
         "skills",
-        "pi",
+        "common",
         "--target-dir",
         targetDirectory,
         "--dry-run",
@@ -380,7 +351,7 @@ describe("CLI integration", () => {
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain(
-        `Dry run for pi uninstall: ${bundledSkillNames.length} skills evaluated.`,
+        `Dry run for common uninstall: ${bundledSkillNames.length} skills evaluated.`,
       );
 
       for (const skillName of bundledSkillNames) {
@@ -432,7 +403,7 @@ describe("CLI integration", () => {
     expect(result.exitCode).toBe(2);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("gemini");
-    expect(result.stderr).toContain("pi");
+    expect(result.stderr).toContain("common");
   });
 
   it("rejects install skills with no agent and no --all flag", async () => {
@@ -454,7 +425,7 @@ describe("CLI integration", () => {
   });
 
   it("rejects --all combined with a specific agent for install", async () => {
-    const result = await runCli(["install", "skills", "--all", "pi"], {
+    const result = await runCli(["install", "skills", "--all", "common"], {
       reject: false,
     });
 
@@ -469,7 +440,7 @@ describe("CLI integration", () => {
 
     try {
       const result = await runCli(["install", "skills", "--all"], {
-        env: { HOME: homeDirectory, PI_CODING_AGENT_DIR: "" },
+        env: { HOME: homeDirectory },
       });
 
       expect(result.exitCode).toBe(0);
@@ -501,7 +472,7 @@ describe("CLI integration", () => {
 
     try {
       const result = await runCli(["install", "skills", "--all", "--dry-run"], {
-        env: { HOME: homeDirectory, PI_CODING_AGENT_DIR: "" },
+        env: { HOME: homeDirectory },
       });
 
       expect(result.exitCode).toBe(0);
@@ -530,11 +501,11 @@ describe("CLI integration", () => {
 
     try {
       await runCli(["install", "skills", "--all"], {
-        env: { HOME: homeDirectory, PI_CODING_AGENT_DIR: "" },
+        env: { HOME: homeDirectory },
       });
 
       const result = await runCli(["uninstall", "skills", "--all"], {
-        env: { HOME: homeDirectory, PI_CODING_AGENT_DIR: "" },
+        env: { HOME: homeDirectory },
       });
 
       expect(result.exitCode).toBe(0);

@@ -10,8 +10,7 @@ import {
 } from "#app/services/skills/agents.ts";
 
 const defaultTargetDirectories = {
-  pi: join(homedir(), ".pi", "agent", "skills"),
-  codex: join(homedir(), ".agents", "skills"),
+  common: join(homedir(), ".agents", "skills"),
   claude: join(homedir(), ".claude", "skills"),
   opencode: join(homedir(), ".config", "opencode", "skills"),
   copilot: join(homedir(), ".copilot", "skills"),
@@ -20,8 +19,7 @@ const defaultTargetDirectories = {
 describe("supportedSkillInstallAgents", () => {
   it("lists all supported agent harnesses", () => {
     expect(supportedSkillInstallAgents).toEqual([
-      "pi",
-      "codex",
+      "common",
       "claude",
       "opencode",
       "copilot",
@@ -36,14 +34,6 @@ describe("resolveSkillInstallTargetDirectory", () => {
     expect(
       resolveSkillInstallTargetDirectory(agent, {}, "./custom-target"),
     ).toBe(resolve("./custom-target"));
-  });
-
-  it("uses PI_CODING_AGENT_DIR for pi when set", () => {
-    expect(
-      resolveSkillInstallTargetDirectory("pi", {
-        PI_CODING_AGENT_DIR: "/tmp/pi-agent",
-      }),
-    ).toBe(resolve("/tmp/pi-agent", "skills"));
   });
 
   it.each(
