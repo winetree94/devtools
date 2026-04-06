@@ -15,10 +15,37 @@ const braveSearchApiKeySchema = z
   })
   .pipe(z.string().min(1).optional());
 
+const searxngUrlSchema = z
+  .string()
+  .trim()
+  .default("https://search.winetree94.com")
+  .refine(
+    (value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: "SEARXNG_URL must be a valid URL." },
+  );
+
+const searxngApiKeySchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => {
+    return value === "" ? undefined : value;
+  })
+  .pipe(z.string().min(1).optional());
+
 const appEnvironmentSchema = z
   .object({
     NODE_ENV: nodeEnvironmentSchema.optional(),
     BRAVE_SEARCH_API_KEY: braveSearchApiKeySchema,
+    SEARXNG_URL: searxngUrlSchema,
+    SEARXNG_API_KEY: searxngApiKeySchema,
   })
   .passthrough();
 
