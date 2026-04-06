@@ -5,6 +5,7 @@ import { defaultWebRequestTimeoutMs } from "#app/services/web/http.ts";
 import {
   createBraveSearchEngine,
   createSearchEngineRegistry,
+  createSearxngSearchEngine,
   runWebSearchCommand,
 } from "#app/services/web/search.ts";
 
@@ -12,9 +13,18 @@ const createCommandSearchEngineRegistry = (
   env: NodeJS.ProcessEnv,
   apiKeyOverride?: string,
 ) => {
-  const { BRAVE_SEARCH_API_KEY: braveSearchApiKey } = env;
+  const {
+    BRAVE_SEARCH_API_KEY: braveSearchApiKey,
+    SEARXNG_URL: searxngUrl,
+    SEARXNG_API_KEY: searxngApiKey,
+  } = env;
 
-  return createSearchEngineRegistry("brave", [
+  return createSearchEngineRegistry("searxng", [
+    createSearxngSearchEngine({
+      apiKey: apiKeyOverride ?? searxngApiKey,
+      baseUrl: searxngUrl ?? "https://search.winetree94.com",
+      fetchImplementation: fetch,
+    }),
     createBraveSearchEngine({
       apiKey: apiKeyOverride ?? braveSearchApiKey,
       fetchImplementation: fetch,
