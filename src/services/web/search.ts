@@ -48,6 +48,12 @@ type BraveSearchEngineDependencies = Readonly<{
   baseUrl?: string;
 }>;
 
+type SearxngSearchEngineDependencies = Readonly<{
+  apiKey: string | undefined;
+  baseUrl: string;
+  fetchImplementation: typeof fetch;
+}>;
+
 const searchCommandSchema = z.object({
   options: z.object({
     apiKey: trimmedOptionalStringSchema,
@@ -153,6 +159,110 @@ const createRequestUrl = (
   url.searchParams.set("text_decorations", "false");
 
   return url;
+};
+
+const readSearxngSearchResults = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const parsedResults = [];
+
+  for (const entry of value) {
+    if (!isJsonObject(entry)) {
+      continue;
+    }
+
+    const title = readString(entry, "title");
+    const url = readString(entry, "url");
+    const content = readString(entry, "content");
+
+    if (title === undefined || url === undefined) {
+      continue;
+    }
+
+    parsedResults.push({
+      title,
+      url,
+      description: content,
+    });
+  }
+
+  return parsedResults;
+};
+
+const createSearxngRequestUrl = (
+  baseUrl: string,
+  query: string,
+  _limit: number,
+): URL => {
+  const url = new URL("/search", baseUrl);
+
+  url.searchParams.set("q", query);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("pageno", "1");
+
+  return url;
+};
+
+export const createSearxngSearchEngine = (
+  dependencies: SearxngSearchEngineDependencies,
+) => {
+  return {
+    name: "searxng",
+    search: async ({ query, limit, timeoutMs }: WebSearchRequest) => {
+      const url = createSearxngRequestUrl(dependencies.baseUrl, query, limit);
+
+      let response: Response;
+
+      try {
+        const headers: Record<string, string> = {
+          Accept: "application/json",
+          ...(dependencies.apiKey !== undefined && dependencies.apiKey !== ""
+            ? { Authorization: `Bearer ${dependencies.apiKey}` }
+            : {}),
+        };
+
+        response = await fetchWithTimeout({
+          url,
+          timeoutMs,
+          subject: "SearXNG search request",
+          fetchImplementation: dependencies.fetchImplementation,
+          headers,
+        });
+      } catch (error: unknown) {
+        throw new WebSearchError(
+          error instanceof Error
+            ? error.message
+            : "SearXNG search request failed.",
+        );
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const message =
+          errorText === ""
+            ? `SearXNG search request failed with ${response.status} ${response.statusText}.`
+            : `SearXNG search request failed with ${response.status} ${response.statusText}: ${errorText}`;
+
+        throw new WebSearchError(message);
+      }
+
+      try {
+        requireContentType(response, ["application/json"]);
+      } catch (error: unknown) {
+        throw new WebSearchError(
+          error instanceof Error
+            ? error.message
+            : "Unsupported content type: unknown.",
+        );
+      }
+
+      const responseBody = (await response.json()) as { results?: unknown };
+
+      return readSearxngSearchResults(responseBody.results);
+    },
+  };
 };
 
 const buildSearchQuery = (query: string, site?: string) => {
