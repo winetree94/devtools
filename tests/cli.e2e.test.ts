@@ -367,12 +367,15 @@ describe("CLI integration", () => {
   });
 
   it("shows a helpful error when the brave api key is missing", async () => {
-    const result = await runCli(["web", "search", "typescript"], {
-      env: {
-        BRAVE_SEARCH_API_KEY: "",
+    const result = await runCli(
+      ["web", "search", "--engine", "brave", "typescript"],
+      {
+        env: {
+          BRAVE_SEARCH_API_KEY: "",
+        },
+        reject: false,
       },
-      reject: false,
-    });
+    );
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
